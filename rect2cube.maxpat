@@ -40,6 +40,18 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-27",
+					"maxclass" : "button",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "bang" ],
+					"parameter_enable" : 0,
+					"patching_rect" : [ 504.999999999999773, 193.0, 24.0, 24.0 ]
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-24",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
@@ -229,8 +241,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 224.83333333333394, 208.0, 141.0, 23.0 ],
-					"text" : "jit.gl.camera @tripod 1"
+					"patching_rect" : [ 224.83333333333394, 208.0, 237.0, 23.0 ],
+					"text" : "jit.gl.camera @locklook 1 @lookat 0 0 0"
 				}
 
 			}
@@ -241,7 +253,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 82.83333333333394, 461.0, 131.0, 22.0 ],
+					"patching_rect" : [ 82.83333333333394, 528.0, 131.0, 22.0 ],
 					"text" : "jit.gl.skybox @infinite 1"
 				}
 
@@ -504,6 +516,13 @@
 				"patchline" : 				{
 					"destination" : [ "obj-14", 0 ],
 					"source" : [ "obj-26", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-13", 0 ],
+					"source" : [ "obj-27", 0 ]
 				}
 
 			}
