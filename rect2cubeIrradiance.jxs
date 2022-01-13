@@ -56,7 +56,7 @@ vec3 equi2car(vec2 uv){
 	float z = cos(theta);
 	return vec3(x, y, z);
 }
-vec3 hash3( float n ) { return (fract(sin(vec3(n,n+1.0,n+2.0))*43758.5453123) - 0.5)*0.01; }
+vec3 hash3( float n ) { return (fract(sin(vec3(n,n+1.0,n+2.0))*43758.5453123) - 0.5)*0.02; }
 vec4 getIrradiance(vec2 uv){
 
 	vec3 dir = equi2car(uv);
@@ -73,7 +73,7 @@ vec4 getIrradiance(vec2 uv){
 	    	vec3 jit = hash3(nrSamples);
 	        // spherical to cartesian (in tangent space)
 	        vec3 tangentSample = vec3(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
-	        tangentSample += jit;
+	        //tangentSample += jit;
 	        // tangent space to world
 	        vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * dir;
 	        sampleVec = normalize(sampleVec);//normalize because of the jittering

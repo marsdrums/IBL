@@ -57,7 +57,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 262.499999999999545, 106.0, 145.0, 22.0 ],
+					"patching_rect" : [ 249.499999999999545, 25.0, 145.0, 22.0 ],
 					"text" : "jit.gl.texture @rectangle 0"
 				}
 
@@ -93,7 +93,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 571.833333333333826, 145.0, 346.0, 22.0 ],
+					"patching_rect" : [ 435.833333333333826, 123.0, 346.0, 22.0 ],
 					"text" : "jit.gl.slab @file rect2cubeIrradiance.jxs @inputs 1 @rectangle 0"
 				}
 
@@ -190,8 +190,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 571.833333333333826, 108.0, 513.0, 22.0 ],
-					"text" : "jit.gl.texture @rectangle 0 @wrap repeat repeat repeat @adapt 0 @type float32 @dim 256 128"
+					"patching_rect" : [ 400.333333333333826, 82.0, 605.0, 22.0 ],
+					"text" : "jit.gl.texture @rectangle 0 @wrap repeat repeat repeat @adapt 0 @type float32 @dim 256 128 @colormode rgb"
 				}
 
 			}
