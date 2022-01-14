@@ -16,6 +16,8 @@
 	<param name="aoTex" 		type="int" default="4" />
 	<param name="irradianceTex"	type="int" default="5" />
 
+	<param name="texRepeat" 	type="vec2" default="1. 2." />
+
 	<language name="glsl" version="1.5">
 		<bind param="pos" 	program="vp" />
 		<bind param="nor" 	program="vp" />
@@ -33,10 +35,13 @@
 		<bind param="aoTex" 		program="fp" />
 		<bind param="irradianceTex" program="fp" />
 
+		<bind param="texRepeat"		program="vp" />
+
 		<program name="vp" type="vertex">
 <![CDATA[
 #version 330 core
 uniform mat4 MVP, M;
+uniform vec2 texRepeat;
 in vec3 pos, nor, tan;
 in vec2 uv;
 
@@ -54,7 +59,7 @@ void main() {
 	jit_out.tan = (M * vec4(tan, 0.)).xyz;
 	jit_out.bit = (M * vec4(cross(nor, tan), 0.)).xyz;
 	jit_out.pos = (M * vec4(pos, 1.)).xyz;
-	jit_out.uv = uv;
+	jit_out.uv = uv*texRepeat;
 }
 ]]>
 		</program>
@@ -66,6 +71,7 @@ void main() {
 uniform vec3 eye;
 uniform mat3 NM;
 uniform sampler2D albedoTex, roughnessTex, metallicTex, normalTex, aoTex;
+uniform samplerCube irradianceTex;
 
 in jit_PerVertex {
 	smooth vec3 nor;
@@ -138,7 +144,14 @@ vec3 getRadiance(vec3 V, vec3 N, vec3 lig, vec3 ligCol, vec3 pos, vec3 alb, floa
 
 	return 	(kD * alb / PI + spe) * rad * NdotL;
 }
-
+vec3 ACES(vec3 x){	
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return saturate3((x*(a*x+b))/(x*(c*x+d)+e));
+}
 void main() {
 
 	vec3	pos = jit_in.pos;						//world position
@@ -176,8 +189,23 @@ void main() {
 		vec3	ligCol = vec3(0.1, 0.5, 0.9)*9.;				//light color
 				lin += getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
 	}
+	{
+		vec3	lig = vec3(-2., -1., -2.);					//light position
+		vec3	ligCol = vec3(1.)*9.;				//light color
+				lin += getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+	}
+
+	vec3 	F0 	= vec3(0.04); 						//dialettric F0
+			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
+	vec3 	kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
+	vec3 	kD = vec3(1.) - kS;
+	vec3 	irradiance = texture(irradianceTex, N).rgb;
+	vec3 	diffuse    = irradiance * alb;
+	vec3 	ambient    = (kD * diffuse) * occ; 
+			//lin += ambient;
 
 			lin /= lin + vec3(1.); 		//from HDI lo LDI
+			//lin = ACES(lin);
 			col.rgb = lin2sRGB(lin);	//gamma correction
 			col.a = 1.;
 			//col.rgb = N;

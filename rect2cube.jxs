@@ -50,8 +50,12 @@ vec2 dir2uv(vec3 v)
 }
 
 vec4 getRect(vec2 uv){
-	vec3 col = gamma_correct == 1. ? pow(texture(rect, uv).rgb, vec3(1./2.2)) : texture(rect, uv).rgb;
-	return vec4(col, 1.);
+	vec3 col = texture(rect, uv).rgb;
+	if(gamma_correct == 1.){
+		col /= col + vec3(1.);
+		return vec4(pow(col, vec3(1./2.2)), 1.);
+	} 
+		return vec4(col, 1.);
 }
 void main(void) {
 	vec3 dir;
