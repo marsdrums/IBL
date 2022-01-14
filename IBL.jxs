@@ -68,7 +68,8 @@ void main() {
 
 
 uniform vec3 camPos;
-uniform sampler2D tex0, roughMap, metalMap, albedo, normDisp;
+uniform sampler2D roughMap, metalMap, albedo, normDisp;
+uniform samplerCube tex0;
 
 in jit_PerVertex {
 	smooth 	vec3 nor;
@@ -219,10 +220,10 @@ void main() {
 	lin += getBRDF(mate, nor, pos, vec3(0., 3., 0.), vec3(1.5), viewDir, roughness, metalness);
 
 	//environment ambient light
-	vec3 env = equirectangularTexture(tex0, nor, 9.5) * mate;
+	vec3 env = texture(tex0, nor).rgb * mate;
 	vec3 ref = reflect(viewDir, nor);
 	float F = fresnel(metalness*0.5, 1., 1. - dot(viewDir, nor));
-	env += equirectangularTexture(tex0, ref, 5 + roughness*14.)* vec3(F)*metalness;
+	//env += equirectangularTexture(tex0, ref, 5 + roughness*14.)* vec3(F)*metalness;
 	lin += env*1;
 
 	col.rgb = lin;
