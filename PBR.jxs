@@ -72,7 +72,8 @@ void main() {
 	gl_Position = MVP * vec4(pos, 1.);	
 	jit_out.nor = (M * vec4(nor, 0.)).xyz;
 	jit_out.tan = (M * vec4(tan, 0.)).xyz;
-	jit_out.bit = cross(jit_out.nor, jit_out.tan);
+	jit_out.tan = normalize(jit_out.tan - dot(jit_out.tan, jit_out.nor) * jit_out.nor);
+	jit_out.bit = cross(jit_out.tan, jit_out.nor);
 	jit_out.pos = (M * vec4(pos, 1.)).xyz;
 	jit_out.uv = uv*texRepeat;
 	jit_out.texRepeat = texRepeat;
@@ -131,14 +132,14 @@ vec2 parallaxMapping(vec2 uv, vec3 tanV)
 
 	// get initial values
 	vec2  currentTexCoords     = uv;
-	float currentDepthMapValue = texture(heightTex, currentTexCoords).r;
+	float currentDepthMapValue = 1. - texture(heightTex, currentTexCoords).r;
 	  
 	while(currentLayerDepth < currentDepthMapValue)
 	{
 	    // shift texture coordinates along direction of P
 	    currentTexCoords -= deltaTexCoords;
 	    // get depthmap value at current texture coordinates
-	    currentDepthMapValue = texture(heightTex, currentTexCoords).r;  
+	    currentDepthMapValue = 1. - texture(heightTex, currentTexCoords).r;  
 	    // get depth of next layer
 	    currentLayerDepth += layerDepth;  
 	}
@@ -148,7 +149,7 @@ vec2 parallaxMapping(vec2 uv, vec3 tanV)
 
 	// get depth after and before collision for linear interpolation
 	float afterDepth  = currentDepthMapValue - currentLayerDepth;
-	float beforeDepth = texture(heightTex, prevTexCoords).r - currentLayerDepth + layerDepth;
+	float beforeDepth = 1. - texture(heightTex, prevTexCoords).r - currentLayerDepth + layerDepth;
 	 
 	// interpolation of texture coordinates
 	float weight = afterDepth / (afterDepth - beforeDepth);
@@ -232,9 +233,7 @@ void main() {
 	mat3    transTBN = transpose(TBN);
 
 	//prepare parallax mapping
-	vec3	tanEye = transTBN * eye;						//tangent eye pos
-	vec3	tanPos = transTBN * pos;						//tangent frag pos
-	vec3	tanV = normalize(tanEye - tanPos);		//tangent view direction
+	vec3	tanV = normalize(transTBN * (eye - pos));		//tangent view direction
 	vec2 	uv 	= parallaxMapping(jit_in.uv, tanV);	//texture coordinates
 	vec2	limit = jit_in.texRepeat;	
 	if(uv.x > limit.x || uv.y > limit.y || uv.x < 0.0 || uv.y < 0.0){discard; }
