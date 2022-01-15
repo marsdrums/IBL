@@ -5,6 +5,7 @@
 	<param name="tan" 	type="vec3" state="TANGENT" />
 	<param name="uv" 	type="vec2" state="TEXCOORD" />
 	<param name="MVP" 	type="mat4" state="MODELVIEW_PROJECTION_MATRIX" />
+	<param name="MV"	type="mat4" state="MODELVIEW_MATRIX" />
 	<param name="M" 	type="mat4" state="WORLD_MATRIX" />
 	<param name="NM"	type="mat3" state="NORMAL_MATRIX" />
 	<param name="eye" 	type="vec3" state="CAMERA_POSITION" />
@@ -18,7 +19,7 @@
 	<param name="irradianceTex"	type="int" default="6" />
 
 	<param name="texRepeat" 	type="vec2" default="1. 2." />
-	<param name="heightScale"	type="float" default="0." />
+	<param name="heightScale"	type="float" default="0.0" />
 
 	<language name="glsl" version="1.5">
 		<bind param="pos" 	program="vp" />
@@ -26,6 +27,7 @@
 		<bind param="tan" 	program="vp" />
 		<bind param="uv" 	program="vp" />
 		<bind param="MVP" 	program="vp" />
+		<bind param="MV"	program="vp" />
 		<bind param="M" 	program="vp" />
 		<bind param="NM"	program="fp" />
 		<bind param="eye" 	program="fp" />
@@ -44,7 +46,7 @@
 		<program name="vp" type="vertex">
 <![CDATA[
 #version 330 core
-uniform mat4 MVP, M;
+uniform mat4 MVP, MV, M;
 uniform vec2 texRepeat;
 in vec3 pos, nor, tan;
 in vec2 uv;
@@ -56,16 +58,22 @@ out jit_PerVertex {
 	smooth 	vec3 pos;
 	smooth 	vec2 uv;
 	flat 	vec2 texRepeat;
+	smooth	vec3 test;
 } jit_out;
 
 void main() {	
+
+	mat3 testMat = transpose(inverse(mat3x3(MV)));
+
 	gl_Position = MVP * vec4(pos, 1.);	
 	jit_out.nor = (M * vec4(nor, 0.)).xyz;
 	jit_out.tan = (M * vec4(tan, 0.)).xyz;
-	jit_out.bit = (M * vec4(cross(nor, tan), 0.)).xyz;
+	jit_out.bit = cross(jit_out.nor, jit_out.tan);
 	jit_out.pos = (M * vec4(pos, 1.)).xyz;
 	jit_out.uv = uv*texRepeat;
 	jit_out.texRepeat = texRepeat;
+
+	jit_out.test = tan;//vec3(M * vec4(tan, 0.));//testMat*tan;
 }
 ]]>
 		</program>
@@ -87,6 +95,7 @@ in jit_PerVertex {
 	smooth 	vec3 pos;
 	smooth 	vec2 uv;	
 	flat 	vec2 texRepeat;
+	smooth	vec3 test;
 } jit_in;
 
 out vec4 col;
@@ -201,11 +210,11 @@ vec3 getRadiance(vec3 V, vec3 N, vec3 lig, vec3 ligCol, vec3 pos, vec3 alb, floa
 	return 	(kD * alb / PI + spe) * rad * NdotL;
 }
 vec3 ACES(vec3 x){	
-    float a = 2.51f;
-    float b = 0.03f;
-    float c = 2.43f;
-    float d = 0.59f;
-    float e = 0.14f;
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
     return saturate3((x*(a*x+b))/(x*(c*x+d)+e));
 }
 void main() {
@@ -217,9 +226,8 @@ void main() {
 	mat3 	TBN = mat3(tan, bit, nor);				//TBN matrix
 
 	//prepare parallax mapping
-	mat3	transTBN = transpose(TBN);
-	vec3	tanEye = transTBN * eye;			//tangent eye pos
-	vec3	tanPos = transTBN * pos;			//tangent frag pos
+	vec3	tanEye = TBN * eye;						//tangent eye pos
+	vec3	tanPos = TBN * pos;						//tangent frag pos
 	vec3	tanV = normalize(tanEye - tanPos);		//tangent view direction
 	vec2 	uv 	= parallaxMapping(jit_in.uv, tanV);	//texture coordinates
 	vec2	limit = jit_in.texRepeat;	
@@ -269,10 +277,11 @@ void main() {
 			//lin += ambient;
 
 			lin /= lin + vec3(1.); 		//from HDI lo LDI
-			//lin = ACES(lin);
+			//lin = ACES(lin);d
 			col.rgb = lin2sRGB(lin);	//gamma correction
 			col.a = 1.;
-			//col.rgb = N;
+			//col.rgb = vec3(pos);
+
 }	
 ]]>
 		</program>
