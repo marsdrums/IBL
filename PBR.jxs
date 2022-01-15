@@ -3,6 +3,7 @@
 	<param name="pos" 	type="vec3" state="POSITION" />
 	<param name="nor" 	type="vec3" state="NORMAL" />
 	<param name="tan" 	type="vec3" state="TANGENT" />
+	<param name="bit" 	type="vec3" state="BITANGENT" />
 	<param name="uv" 	type="vec2" state="TEXCOORD" />
 	<param name="MVP" 	type="mat4" state="MODELVIEW_PROJECTION_MATRIX" />
 	<param name="MV"	type="mat4" state="MODELVIEW_MATRIX" />
@@ -25,11 +26,12 @@
 		<bind param="pos" 	program="vp" />
 		<bind param="nor" 	program="vp" />
 		<bind param="tan" 	program="vp" />
+		<bind param="bit" 	program="vp" />
 		<bind param="uv" 	program="vp" />
 		<bind param="MVP" 	program="vp" />
 		<bind param="MV"	program="vp" />
 		<bind param="M" 	program="vp" />
-		<bind param="NM"	program="fp" />
+		<bind param="NM"	program="vp" />
 		<bind param="eye" 	program="fp" />
 		//textures
 		<bind param="albedoTex" 	program="fp" />
@@ -47,8 +49,9 @@
 <![CDATA[
 #version 330 core
 uniform mat4 MVP, MV, M;
+uniform mat3 NM;
 uniform vec2 texRepeat;
-in vec3 pos, nor, tan;
+in vec3 pos, nor, tan, bit;
 in vec2 uv;
 
 out jit_PerVertex {	
@@ -59,11 +62,12 @@ out jit_PerVertex {
 	smooth 	vec2 uv;
 	flat 	vec2 texRepeat;
 	smooth	vec3 test;
+	smooth 	vec3 eyePos;
 } jit_out;
 
 void main() {	
 
-	mat3 testMat = transpose(inverse(mat3x3(MV)));
+	//mat3 testMat = transpose(inverse(mat3x3(MV)));
 
 	gl_Position = MVP * vec4(pos, 1.);	
 	jit_out.nor = (M * vec4(nor, 0.)).xyz;
@@ -72,6 +76,7 @@ void main() {
 	jit_out.pos = (M * vec4(pos, 1.)).xyz;
 	jit_out.uv = uv*texRepeat;
 	jit_out.texRepeat = texRepeat;
+	jit_out.eyePos = (MV * vec4(pos, 1.)).xyz;
 
 	jit_out.test = tan;//vec3(M * vec4(tan, 0.));//testMat*tan;
 }
@@ -83,7 +88,6 @@ void main() {
 #define PI 3.14159265
 
 uniform vec3 eye;
-uniform mat3 NM;
 uniform sampler2D albedoTex, roughnessTex, metallicTex, normalTex, aoTex, heightTex;
 uniform samplerCube irradianceTex;
 uniform float heightScale;
@@ -96,6 +100,7 @@ in jit_PerVertex {
 	smooth 	vec2 uv;	
 	flat 	vec2 texRepeat;
 	smooth	vec3 test;
+	smooth  vec3 eyePos;
 } jit_in;
 
 out vec4 col;
@@ -111,7 +116,7 @@ vec2 parallaxMapping(vec2 uv, vec3 tanV)
 { 
     // number of depth layers
 	const float minLayers = 8.0;
-	const float maxLayers = 32.0;
+	const float maxLayers = 64.0;
 	float numLayers = mix(maxLayers, minLayers, max(dot(vec3(0.0, 0.0, 1.0), tanV), 0.0));  
 
     // calculate the size of each layer
@@ -224,10 +229,11 @@ void main() {
 	vec3 	tan = normalize(jit_in.tan);			//world tangents
 	vec3 	bit = normalize(jit_in.bit);			//world bitangent
 	mat3 	TBN = mat3(tan, bit, nor);				//TBN matrix
+	mat3    transTBN = transpose(TBN);
 
 	//prepare parallax mapping
-	vec3	tanEye = TBN * eye;						//tangent eye pos
-	vec3	tanPos = TBN * pos;						//tangent frag pos
+	vec3	tanEye = transTBN * eye;						//tangent eye pos
+	vec3	tanPos = transTBN * pos;						//tangent frag pos
 	vec3	tanV = normalize(tanEye - tanPos);		//tangent view direction
 	vec2 	uv 	= parallaxMapping(jit_in.uv, tanV);	//texture coordinates
 	vec2	limit = jit_in.texRepeat;	
@@ -280,7 +286,7 @@ void main() {
 			//lin = ACES(lin);d
 			col.rgb = lin2sRGB(lin);	//gamma correction
 			col.a = 1.;
-			//col.rgb = vec3(pos);
+			//col.rgb = N;//vec3(pos);
 
 }	
 ]]>
