@@ -132,7 +132,7 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
    	// current texture coordinates
    	vec2 currentTextureCoords = T;
 
-   	float lod = ( 1. - abs(dot(vec3(0, 0, 1), V)))*3.;
+   	float lod = ( 1. - abs(dot(vec3(0, 0, 1), V)))*0.;
 
   	// depth from heightmap
    	float heightFromTexture = 1. - textureLod(heightTex, currentTextureCoords, lod).r;
@@ -217,7 +217,7 @@ float parallaxSoftShadowMultiplier(vec3 L, vec3 N, vec2 initialTexCoord, float i
     }
 
     // Shadowing factor should be 1 if there were no points under the surface
-    return (numSamplesUnderSurface <= 1.) ? 1. : saturate(1. - shadowMultiplier*9.);
+    return (numSamplesUnderSurface <= 1.) ? 1. : saturate(1. - shadowMultiplier*5.);
     //return abs(NdotL);
 }
 //PBR functions

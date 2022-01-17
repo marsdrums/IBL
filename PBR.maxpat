@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 1330.0, 102.0, 754.0, 1273.0 ],
+		"rect" : [ 720.0, 85.0, 1411.0, 1273.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -105,8 +105,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 612.0, 92.0, 98.0, 22.0 ],
-					"text" : "shape torus 1. 2."
+					"patching_rect" : [ 612.0, 92.0, 139.0, 22.0 ],
+					"text" : "shape opencylinder 4. 1."
 				}
 
 			}
@@ -117,8 +117,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 612.0, 66.0, 97.0, 22.0 ],
-					"text" : "shape cube 1. 1."
+					"patching_rect" : [ 612.0, 66.0, 124.0, 22.0 ],
+					"text" : "shape opencube 1. 1."
 				}
 
 			}
@@ -141,8 +141,8 @@
 					"numinlets" : 9,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 97.0, 392.0, 772.0, 22.0 ],
-					"text" : "jit.gl.mesh @auto_tangents 1 @auto_bitangents 1 @shader PBR @texture albedo roughness metallic normal ao height irradiance @cull_face 1"
+					"patching_rect" : [ 118.0, 379.0, 883.0, 22.0 ],
+					"text" : "jit.gl.mesh @auto_tangents 1 @cull_face 1 @auto_bitangents 1 @rotatexyz 90. 0. 0. @shader PBR @texture albedo roughness metallic normal ao height irradiance"
 				}
 
 			}
@@ -153,7 +153,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 4,
 					"outlettype" : [ "jit_matrix", "jit_matrix", "jit_matrix", "" ],
-					"patching_rect" : [ 97.0, 352.0, 217.0, 22.0 ],
+					"patching_rect" : [ 118.0, 337.0, 328.000000000000057, 22.0 ],
 					"text" : "jit.unpack 3 @jump 3 2 3 @offset 0 3 5"
 				}
 
@@ -298,7 +298,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 655.5, 204.0, 73.0, 22.0 ],
-					"text" : "loadmess 2."
+					"text" : "loadmess 1."
 				}
 
 			}
@@ -309,7 +309,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 583.0, 204.0, 73.0, 22.0 ],
+					"patching_rect" : [ 571.5, 204.0, 73.0, 22.0 ],
 					"text" : "loadmess 1."
 				}
 
@@ -887,8 +887,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 118.0, 218.0, 89.0, 22.0 ],
-					"text" : "turn 0.6 0.7 1.1"
+					"patching_rect" : [ 118.0, 218.0, 69.0, 22.0 ],
+					"text" : "turn 0. 1. 0."
 				}
 
 			}
@@ -899,7 +899,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "" ],
-					"patching_rect" : [ 118.0, 258.0, 76.0, 22.0 ],
+					"patching_rect" : [ 47.0, 269.0, 76.0, 22.0 ],
 					"text" : "jit.anim.drive"
 				}
 
@@ -912,8 +912,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 118.0, 303.0, 415.0, 22.0 ],
-					"text" : "jit.gl.gridshape @shape torus @dim 100 100 @matrixoutput 1 @automatic 1"
+					"patching_rect" : [ 118.0, 303.0, 441.0, 22.0 ],
+					"text" : "jit.gl.gridshape @shape opencube @dim 100 100 @matrixoutput 1 @automatic 1"
 				}
 
 			}
@@ -1153,7 +1153,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 312.5, 231.0, 197.0, 22.0 ]
+					"patching_rect" : [ 312.5, 209.0, 197.0, 22.0 ]
 				}
 
 			}
@@ -1264,7 +1264,7 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-37", 0 ],
+					"destination" : [ "obj-19", 0 ],
 					"source" : [ "obj-118", 0 ]
 				}
 
@@ -1422,7 +1422,7 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-37", 0 ],
+					"destination" : [ "obj-19", 0 ],
 					"source" : [ "obj-36", 0 ]
 				}
 
