@@ -72,7 +72,7 @@ void main() {
 	gl_Position = MVP * vec4(pos, 1.);	
 	jit_out.nor = (M * vec4(nor, 0.)).xyz;
 	jit_out.tan = (M * vec4(tan, 0.)).xyz;
-	jit_out.tan = normalize(jit_out.tan - dot(jit_out.tan, jit_out.nor) * jit_out.nor);
+	//jit_out.tan = normalize(jit_out.tan - dot(jit_out.tan, jit_out.nor) * jit_out.nor);
 	jit_out.bit = -cross(jit_out.nor, jit_out.tan);
 	jit_out.pos = (M * vec4(pos, 1.)).xyz;
 	jit_out.uv = uv*texRepeat;
@@ -119,7 +119,7 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
 
    	// determine optimal number of layers
    	const float minLayers = 300;
-   	const float maxLayers = 500;
+   	const float maxLayers = 300;
    	float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
 
    	// height of each layer
@@ -178,7 +178,7 @@ float parallaxSoftShadowMultiplier(vec3 L, vec3 N, vec2 initialTexCoord, float i
    float NdotL = dot(N, L);
    if(NdotL < 0.0) {return 0.;}
 
-   const float minLayers = 80;
+   const float minLayers = 200;
    const float maxLayers = 200;
 
     // calculate initial parameters
@@ -217,7 +217,7 @@ float parallaxSoftShadowMultiplier(vec3 L, vec3 N, vec2 initialTexCoord, float i
     }
 
     // Shadowing factor should be 1 if there were no points under the surface
-    return (numSamplesUnderSurface <= 1.) ? 1. : saturate(1. - shadowMultiplier*5.);
+    return (numSamplesUnderSurface <= 1.) ? 1. : 1. - saturate(shadowMultiplier*30);
     //return abs(NdotL);
 }
 //PBR functions
@@ -346,22 +346,23 @@ void main() {
 		vec3	ligCol = vec3(1.)*9.;				//light color
 				lin += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
 	}
-
-	vec3 	F0 	= vec3(0.04); 						//dialettric F0
+	vec3 	F0 	= vec3(0.02); 						//dialettric F0
 			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
 	vec3 	kS = fresnelSchlick(clamp(dot(N, V), 0, 1.), F0);
 	vec3 	kD = vec3(1.) - kS;
-	vec3 	irradiance = texture(irradianceTex, N).rgb;
-	vec3 	diffuse    = irradiance * alb;
-	vec3 	ambient    = (kD * diffuse) * occ; 
-			//lin += ambient;
-			//lin += vec3(0.001)*occ;
+			height = texture(heightTex, uv).r;
+	vec3 	irradiance = vec3(0.03);//texture(irradianceTex, N).rgb;
+			irradiance *= kD;
+			irradiance *= alb;
+			irradiance *= occ;
+			irradiance *= 1. - (1. - height)*heightScale;
+			lin += irradiance;
 
 			lin /= lin + vec3(1.); 		//from HDI lo LDI
-			//lin = ACES(lin);d
+			//lin = ACES(lin);
 			col.rgb = lin2sRGB(lin);	//gamma correction
 			col.a = 1.;
-			//col.rgb = N;//vec3(pos);
+			//col.rgb = vec3(kD);
 
 }	
 ]]>
