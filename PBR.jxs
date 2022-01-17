@@ -19,8 +19,8 @@
 	<param name="heightTex"		type="int" default="5" />
 	<param name="irradianceTex"	type="int" default="6" />
 
-	<param name="texRepeat" 	type="vec2" default="1. 2." />
-	<param name="heightScale"	type="float" default="0.3" />
+	<param name="texRepeat" 	type="vec2" default="1. 1." />
+	<param name="heightScale"	type="float" default="0.08" />
 
 	<language name="glsl" version="1.5">
 		<bind param="pos" 	program="vp" />
@@ -111,62 +111,15 @@ vec3 	lin2sRGB(vec3 x){ return pow(x, vec3(0.4545454545));}
 vec3 	sRGB2lin(vec3 x){ return pow(x, vec3(2.2));}
 float 	saturate(float x){ return clamp(x, 0., 1.);}
 vec3 	saturate3(vec3 x){ return clamp(x, vec3(0.), vec3(1.));}
-/*
-//Parallax maping
-vec2 parallaxMapping(vec2 uv, vec3 tanV)
-{ 
-    // number of depth layers
-	const float minLayers = 32.0;
-	const float maxLayers = 128.0;
-	float numLayers = mix(maxLayers, minLayers, max(dot(vec3(0.0, 0.0, 1.0), tanV), 0.0));  
-
-    // calculate the size of each layer
-    float layerDepth = 1.0 / numLayers;
-
-    // depth of current layer
-    float currentLayerDepth = 0.0;
-
-    // the amount to shift the texture coordinates per layer (from vector P)
-    vec2 P = tanV.xy * heightScale; 
-    vec2 deltaTexCoords = P / numLayers;
-
-	// get initial values
-	vec2  currentTexCoords     = uv;
-	float currentDepthMapValue = 1. - texture(heightTex, currentTexCoords).r;
-	  
-	while(currentLayerDepth < currentDepthMapValue)
-	{
-	    // shift texture coordinates along direction of P
-	    currentTexCoords -= deltaTexCoords;
-	    // get depthmap value at current texture coordinates
-	    currentDepthMapValue = 1. - texture(heightTex, currentTexCoords).r;  
-	    // get depth of next layer
-	    currentLayerDepth += layerDepth;  
-	}
-
-	// get texture coordinates before collision (reverse operations)
-	vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
-
-	// get depth after and before collision for linear interpolation
-	float afterDepth  = currentDepthMapValue - currentLayerDepth;
-	float beforeDepth = 1. - texture(heightTex, prevTexCoords).r - currentLayerDepth + layerDepth;
-	 
-	// interpolation of texture coordinates
-	float weight = afterDepth / (afterDepth - beforeDepth);
-	vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
-
-	return finalTexCoords; 
-}
-*/
-vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat)
-{
+//Parallax mapping
+vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
 	//compute texture coordinates ratio
 	float uvRatio = texRepeat.x / texRepeat.y;
 	V.x *= uvRatio;
 
    	// determine optimal number of layers
-   	const float minLayers = 150;
-   	const float maxLayers = 300;
+   	const float minLayers = 300;
+   	const float maxLayers = 500;
    	float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
 
    	// height of each layer
@@ -179,8 +132,10 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat)
    	// current texture coordinates
    	vec2 currentTextureCoords = T;
 
+   	float lod = ( 1. - abs(dot(vec3(0, 0, 1), V)))*3.;
+
   	// depth from heightmap
-   	float heightFromTexture = 1. - texture(heightTex, currentTextureCoords).r;
+   	float heightFromTexture = 1. - textureLod(heightTex, currentTextureCoords, lod).r;
 
    	// while point is above the surface
    	while(heightFromTexture > curLayerHeight) 
@@ -190,7 +145,7 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat)
       	// shift of texture coordinates
       	currentTextureCoords -= dtex;
       	// new depth from heightmap
-      	heightFromTexture = 1. - texture(heightTex, currentTextureCoords).r;
+      	heightFromTexture = 1. - textureLod(heightTex, currentTextureCoords, lod).r;
    	}
 
    	///////////////////////////////////////////////////////////
@@ -200,7 +155,7 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat)
 
    	// heights for linear interpolation
    	float nextH = heightFromTexture - curLayerHeight;
-   	float prevH = 1. - texture(heightTex, prevTCoords).r
+   	float prevH = 1. - textureLod(heightTex, prevTCoords, lod).r
                            - curLayerHeight + layerHeight;
 
    	// proportions for linear interpolation
@@ -214,6 +169,56 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat)
 
    	// return result
    	return vec3(finalTexCoords, curLayerHeight + prevH * weight + nextH * (1.0 - weight));
+}
+float parallaxSoftShadowMultiplier(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
+
+
+
+   // calculate lighting only for surface oriented to the light source
+   float NdotL = dot(N, L);
+   if(NdotL < 0.0) {return 0.;}
+
+   const float minLayers = 80;
+   const float maxLayers = 200;
+
+    // calculate initial parameters
+    float numSamplesUnderSurface = 0.;
+    float shadowMultiplier = 0.;
+    float numLayers = mix(maxLayers, minLayers, abs(NdotL));
+    float layerHeight = initialHeight / numLayers;
+    vec2 texStep = heightScale * L.xy / L.z / numLayers;
+
+    // current parameters
+    float currentLayerHeight = initialHeight - layerHeight;
+    vec2 currentTextureCoords = initialTexCoord + texStep;
+    float heightFromTexture = 1. - texture(heightTex, currentTextureCoords).r;
+    float stepIndex = 1.;
+
+    //int count = 0;
+
+    // while point is below depth 0.0 )
+    while(currentLayerHeight > 0.){
+
+        // if point is under the surface
+        if(heightFromTexture < currentLayerHeight){
+
+            // calculate partial shadowing factor
+            numSamplesUnderSurface += 1.;
+            float newShadowMultiplier = (currentLayerHeight  - heightFromTexture)*(1.0 - stepIndex / numLayers);
+            shadowMultiplier = max(shadowMultiplier, newShadowMultiplier);
+        }
+
+        // offset to the next layer
+        stepIndex += 1.;
+        currentLayerHeight -= layerHeight;
+        currentTextureCoords += texStep;
+        heightFromTexture = 1. - texture(heightTex, currentTextureCoords).r;
+        //count += 1;
+    }
+
+    // Shadowing factor should be 1 if there were no points under the surface
+    return (numSamplesUnderSurface <= 1.) ? 1. : saturate(1. - shadowMultiplier*9.);
+    //return abs(NdotL);
 }
 //PBR functions
 vec3 fresnelSchlick(float HdotV, vec3 F0){
@@ -291,7 +296,10 @@ void main() {
 
 	//prepare parallax mapping
 	vec3	tanV = normalize(transTBN * (eye - pos));		//tangent view direction
-	vec2 	uv 	= parallaxMapping(jit_in.uv, tanV, jit_in.texRepeat).xy;	//texture coordinates
+	vec3 	uvHeight 	= parallaxMapping(jit_in.uv, tanV, jit_in.texRepeat);	//texture coordinates
+	vec2	uv = uvHeight.xy;
+	float	height = uvHeight.z;
+	//float	lod = abs( 1. - dot(vec3(0, 0, 1.), tanV) )*0;
 	vec2	limit = jit_in.texRepeat;	
 	if(uv.x > limit.x || uv.y > limit.y || uv.x < 0.0 || uv.y < 0.0){discard; }
 
@@ -302,8 +310,8 @@ void main() {
 	float	occ = texture(aoTex, uv).r;				//ambient occlusion
 
 	vec3	V = normalize(eye - pos);				//view direction
-	vec3	N = texture(normalTex, uv).rgb; 		//normals
-			N = normalize(TBN * (N*2. - vec3(1.)));
+	vec3	tanN = texture(normalTex, uv).rgb * 2. - vec3(1.); 	//normals
+	vec3	N = normalize(TBN * tanN);
 			//N = nor;
 
 	vec3	lin = vec3(0.);							//initialize the out color to 0
@@ -311,23 +319,32 @@ void main() {
 	//lighting
 	{
 		vec3	lig = vec3(1., 3., 0.);					//light position
-		vec3	ligCol = vec3(1.)*19.;						//light color
-				lin += getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+		vec3	tanLigDir = normalize(transTBN * (lig - pos));	//light pos in tangent space
+		float 	sha = parallaxSoftShadowMultiplier(tanLigDir, tanN, uv, height);
+		vec3	ligCol = vec3(1.)*9.;						//light color
+				lin += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+				//lin = vec3(sha);
 	}
 	{
 		vec3	lig = vec3(-2., 1., -1.);					//light position
-		vec3	ligCol = vec3(0.8, 0.5, 0.1)*19.;				//light color
-				lin += getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+		vec3	tanLigDir = normalize(transTBN * (lig - pos));	//light pos in tangent space
+		float 	sha = parallaxSoftShadowMultiplier(tanLigDir, tanN, uv, height);
+		vec3	ligCol = vec3(0.8, 0.5, 0.1)*9.;				//light color
+				lin += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
 	}
 	{
 		vec3	lig = vec3(2., -1., 1.);					//light position
-		vec3	ligCol = vec3(0.1, 0.5, 0.9)*19.;				//light color
-				lin += getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+		vec3	tanLigDir = normalize(transTBN * (lig - pos));	//light pos in tangent space
+		float 	sha = parallaxSoftShadowMultiplier(tanLigDir, tanN, uv, height);
+		vec3	ligCol = vec3(0.1, 0.5, 0.9)*9.;				//light color
+				lin += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
 	}
 	{
 		vec3	lig = vec3(-2., -1., -2.);					//light position
-		vec3	ligCol = vec3(1.)*19.;				//light color
-				lin += getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+		vec3	tanLigDir = normalize(transTBN * (lig - pos));	//light pos in tangent space
+		float 	sha = parallaxSoftShadowMultiplier(tanLigDir, tanN, uv, height);
+		vec3	ligCol = vec3(1.)*9.;				//light color
+				lin += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
 	}
 
 	vec3 	F0 	= vec3(0.04); 						//dialettric F0
@@ -338,6 +355,7 @@ void main() {
 	vec3 	diffuse    = irradiance * alb;
 	vec3 	ambient    = (kD * diffuse) * occ; 
 			//lin += ambient;
+			//lin += vec3(0.001)*occ;
 
 			lin /= lin + vec3(1.); 		//from HDI lo LDI
 			//lin = ACES(lin);d
