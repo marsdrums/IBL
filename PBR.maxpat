@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 178.0, 108.0, 944.0, 1246.0 ],
+		"rect" : [ 331.0, 131.0, 1300.0, 1246.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -39,6 +39,42 @@
 		"subpatcher_template" : "",
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
+				"box" : 				{
+					"id" : "obj-102",
+					"maxclass" : "button",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "bang" ],
+					"parameter_enable" : 0,
+					"patching_rect" : [ 988.0, 203.0, 24.0, 24.0 ]
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-86",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 916.0, 183.0, 33.0, 22.0 ],
+					"text" : "read"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-84",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "jit_matrix", "" ],
+					"patching_rect" : [ 933.0, 253.0, 235.0, 22.0 ],
+					"text" : "jit.gl.model @matrixoutput 1 @automatic 1"
+				}
+
+			}
+, 			{
 				"box" : 				{
 					"id" : "obj-74",
 					"maxclass" : "message",
@@ -1020,7 +1056,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 118.0, 303.0, 441.0, 22.0 ],
+					"patching_rect" : [ 125.0, 289.0, 441.0, 22.0 ],
 					"text" : "jit.gl.gridshape @shape opencube @dim 100 100 @matrixoutput 1 @automatic 1"
 				}
 
@@ -1277,6 +1313,13 @@
 				"patchline" : 				{
 					"destination" : [ "obj-94", 0 ],
 					"source" : [ "obj-100", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-84", 0 ],
+					"source" : [ "obj-102", 0 ]
 				}
 
 			}
@@ -1982,6 +2025,13 @@
 					"destination" : [ "obj-83", 0 ],
 					"order" : 0,
 					"source" : [ "obj-82", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-84", 0 ],
+					"source" : [ "obj-86", 0 ]
 				}
 
 			}
