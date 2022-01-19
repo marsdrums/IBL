@@ -378,6 +378,8 @@ void main() {
 	vec3 	ambient = (diffuse + specular) * occ; 
 
  			col.rgb = radiance + ambient;
+ 			//col.rgb = ambient;
+
 
  			//gamma corrections
 			col.rgb /= col.rgb + vec3(1.); 		//from HDI lo LDI
