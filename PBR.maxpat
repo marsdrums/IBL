@@ -40,6 +40,18 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-9",
+					"linecount" : 10,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 380.5, 726.0, 600.0, 158.0 ],
+					"text" : "Things to do:\n- move the TBN matrix to the vertex shader\n- enter the light calculation only if N is facing the light and if closer that a reasonable attenuation value\n- remove the second fresnel calculation (duplicate)\n- bring out the controls over parallax mapping precision\n- see if parallax mapping and shadows can be merged in a single function call\n- substitute saturate with max where possible\n- fix the parallax mapping\n- downsample the textures and see if the result is acceptable\n\n"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"format" : 6,
 					"id" : "obj-165",
 					"maxclass" : "flonum",
@@ -1162,7 +1174,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 1194.033333333333985, 66.0, 495.799999999999955, 36.0 ],
+					"patching_rect" : [ 1194.033333333333985, 66.0, 497.0, 36.0 ],
 					"text" : "jit.gl.texture @rectangle 0 @type float32 @name equirect @mipmap trilinear @wrap repeat repeat repeat"
 				}
 

@@ -176,8 +176,6 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
 }
 float parallaxSoftShadowMultiplier(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
 
-
-
    // calculate lighting only for surface oriented to the light source
    float NdotL = dot(N, L);
    if(NdotL < 0.0) {return 0.;}
