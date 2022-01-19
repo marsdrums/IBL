@@ -40,6 +40,18 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-13",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "bang", "" ],
+					"patching_rect" : [ 1153.0, 262.0, 29.5, 22.0 ],
+					"text" : "t b l"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-9",
 					"linecount" : 10,
 					"maxclass" : "comment",
@@ -1101,7 +1113,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 118.0, 509.0, 582.0, 22.0 ],
+					"patching_rect" : [ 125.0, 629.0, 582.0, 22.0 ],
 					"text" : "jit.gl.gridshape @shape sphere @scale 0.05 0.05 0.05 @dim 15 15 @gl_color 1 1 1 1. @position -2.\\, -1.\\, -2."
 				}
 
@@ -1114,7 +1126,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 1128.0, 204.0, 24.0, 24.0 ]
+					"patching_rect" : [ 1153.0, 294.0, 24.0, 24.0 ]
 				}
 
 			}
@@ -1125,7 +1137,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 1366.0, 135.0, 70.0, 22.0 ],
+					"patching_rect" : [ 1366.0, 115.0, 70.0, 22.0 ],
 					"text" : "loadmess 1"
 				}
 
@@ -1138,7 +1150,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "int" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 1366.0, 168.0, 24.0, 24.0 ]
+					"patching_rect" : [ 1366.0, 148.0, 24.0, 24.0 ]
 				}
 
 			}
@@ -1149,7 +1161,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 1366.0, 204.0, 146.0, 22.0 ],
+					"patching_rect" : [ 1366.0, 184.0, 146.0, 22.0 ],
 					"text" : "param gamma_correct $1"
 				}
 
@@ -1161,7 +1173,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 1194.200000000000045, 336.0, 192.0, 22.0 ],
+					"patching_rect" : [ 1198.200000000000045, 355.0, 192.0, 22.0 ],
 					"text" : "jit.gl.skybox @infinite 1 @enable 1"
 				}
 
@@ -1186,7 +1198,7 @@
 					"numinlets" : 6,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 1194.200000000000045, 289.0, 282.999999999999773, 22.0 ],
+					"patching_rect" : [ 1198.200000000000045, 308.0, 282.999999999999773, 22.0 ],
 					"text" : "jit.gl.cubemap @name cube"
 				}
 
@@ -1198,7 +1210,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 7,
 					"outlettype" : [ "jit_gl_texture", "jit_gl_texture", "jit_gl_texture", "jit_gl_texture", "jit_gl_texture", "jit_gl_texture", "" ],
-					"patching_rect" : [ 1194.200000000000045, 254.0, 335.799999999999955, 22.0 ],
+					"patching_rect" : [ 1194.200000000000045, 234.0, 335.799999999999955, 22.0 ],
 					"text" : "jit.gl.slab @file rect2cube.jxs @outputs 6 @inputs 1"
 				}
 
@@ -1222,7 +1234,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 118.0, 485.0, 598.0, 22.0 ],
+					"patching_rect" : [ 125.0, 605.0, 598.0, 22.0 ],
 					"text" : "jit.gl.gridshape @shape sphere @scale 0.05 0.05 0.05 @dim 15 15 @gl_color 0.1 0.5 0.9 1. @position 2. -1. 1."
 				}
 
@@ -1234,7 +1246,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 118.0, 461.0, 602.0, 22.0 ],
+					"patching_rect" : [ 125.0, 581.0, 602.0, 22.0 ],
 					"text" : "jit.gl.gridshape @shape sphere @scale 0.05 0.05 0.05 @dim 15 15 @gl_color 0.8 0.5 0.1 1. @position -2. 1. -1."
 				}
 
@@ -1246,7 +1258,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 118.0, 437.0, 560.0, 22.0 ],
+					"patching_rect" : [ 125.0, 557.0, 560.0, 22.0 ],
 					"text" : "jit.gl.gridshape @shape sphere @scale 0.05 0.05 0.05 @dim 15 15 @gl_color 1 1 1 1 @position 1. 3. 0."
 				}
 
@@ -1609,7 +1621,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 1322.200000000000045, 313.0, 150.0, 22.0 ]
+					"patching_rect" : [ 1326.200000000000045, 332.0, 150.0, 22.0 ]
 				}
 
 			}
@@ -1681,6 +1693,20 @@
 				"patchline" : 				{
 					"destination" : [ "obj-135", 0 ],
 					"source" : [ "obj-126", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-91", 0 ],
+					"source" : [ "obj-13", 1 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-99", 0 ],
+					"source" : [ "obj-13", 0 ]
 				}
 
 			}
@@ -2299,6 +2325,13 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-13", 0 ],
+					"source" : [ "obj-92", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-91", 5 ],
 					"source" : [ "obj-92", 5 ]
 				}
@@ -2329,13 +2362,6 @@
 				"patchline" : 				{
 					"destination" : [ "obj-91", 1 ],
 					"source" : [ "obj-92", 1 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-91", 0 ],
-					"source" : [ "obj-92", 0 ]
 				}
 
 			}
