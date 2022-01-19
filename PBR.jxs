@@ -12,15 +12,14 @@
 	<param name="eye" 	type="vec3" state="CAMERA_POSITION" />
 	//textures
 	<param name="albedoTex" 	type="int" default="0" />
-	<param name="roughnessTex" 	type="int" default="1" />
-	<param name="metallicTex" 	type="int" default="2" />
-	<param name="normalTex" 	type="int" default="3" />
-	<param name="aoTex" 		type="int" default="4" />
-	<param name="heightTex"		type="int" default="5" />
-	<param name="irradianceTex"	type="int" default="6" />
+	<param name="RMOHTex" 		type="int" default="1" />
+	<param name="normalTex" 	type="int" default="2" />
+	<param name="irradianceTex"	type="int" default="3" />
+	<param name="equirectTex"	type="int" default="4" />
+	<param name="integMap"		type="int" default="5" />
 
 	<param name="texRepeat" 	type="vec2" default="1. 1." />
-	<param name="heightScale"	type="float" default="0.08" />
+	<param name="heightScale"	type="float" default="0.0" />
 
 	<language name="glsl" version="1.5">
 		<bind param="pos" 	program="vp" />
@@ -35,12 +34,11 @@
 		<bind param="eye" 	program="fp" />
 		//textures
 		<bind param="albedoTex" 	program="fp" />
-		<bind param="roughnessTex" 	program="fp" />
-		<bind param="metallicTex" 	program="fp" />
+		<bind param="RMOHTex" 		program="fp" />
 		<bind param="normalTex" 	program="fp" />
-		<bind param="aoTex" 		program="fp" />
-		<bind param="heightTex" 	program="fp" />
-		<bind param="irradianceTex" program="fp" />
+		<bind param="irradianceTex"	program="fp" />
+		<bind param="equirectTex"	program="fp" />
+		<bind param="integMap"		program="fp" />
 
 		<bind param="texRepeat"		program="vp" />
 		<bind param="heightScale"   program="fp" />
@@ -89,7 +87,7 @@ void main() {
 #define PI 3.14159265
 
 uniform vec3 eye;
-uniform sampler2D albedoTex, roughnessTex, metallicTex, normalTex, aoTex, heightTex;
+uniform sampler2D albedoTex, RMOHTex, normalTex, equirectTex, integMap;
 uniform samplerCube irradianceTex;
 uniform float heightScale;
 
@@ -111,6 +109,12 @@ vec3 	lin2sRGB(vec3 x){ return pow(x, vec3(0.4545454545));}
 vec3 	sRGB2lin(vec3 x){ return pow(x, vec3(2.2));}
 float 	saturate(float x){ return clamp(x, 0., 1.);}
 vec3 	saturate3(vec3 x){ return clamp(x, vec3(0.), vec3(1.));}
+vec2 dir2uv(vec3 v){
+    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
+    uv *= vec2(-0.1591, 0.3183); //to invert atan
+    uv += 0.5;
+    return uv;
+}
 //Parallax mapping
 vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
 	//compute texture coordinates ratio
@@ -135,7 +139,7 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
    	float lod = ( 1. - abs(dot(vec3(0, 0, 1), V)))*0.;
 
   	// depth from heightmap
-   	float heightFromTexture = 1. - textureLod(heightTex, currentTextureCoords, lod).r;
+   	float heightFromTexture = 1. - textureLod(RMOHTex, currentTextureCoords, lod).w;
 
    	// while point is above the surface
    	while(heightFromTexture > curLayerHeight) 
@@ -145,7 +149,7 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
       	// shift of texture coordinates
       	currentTextureCoords -= dtex;
       	// new depth from heightmap
-      	heightFromTexture = 1. - textureLod(heightTex, currentTextureCoords, lod).r;
+      	heightFromTexture = 1. - textureLod(RMOHTex, currentTextureCoords, lod).w;
    	}
 
    	///////////////////////////////////////////////////////////
@@ -155,7 +159,7 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
 
    	// heights for linear interpolation
    	float nextH = heightFromTexture - curLayerHeight;
-   	float prevH = 1. - textureLod(heightTex, prevTCoords, lod).r
+   	float prevH = 1. - textureLod(RMOHTex, prevTCoords, lod).w
                            - curLayerHeight + layerHeight;
 
    	// proportions for linear interpolation
@@ -191,7 +195,7 @@ float parallaxSoftShadowMultiplier(vec3 L, vec3 N, vec2 initialTexCoord, float i
     // current parameters
     float currentLayerHeight = initialHeight - layerHeight;
     vec2 currentTextureCoords = initialTexCoord + texStep;
-    float heightFromTexture = 1. - texture(heightTex, currentTextureCoords).r;
+    float heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).w;
     float stepIndex = 1.;
 
     //int count = 0;
@@ -212,7 +216,7 @@ float parallaxSoftShadowMultiplier(vec3 L, vec3 N, vec2 initialTexCoord, float i
         stepIndex += 1.;
         currentLayerHeight -= layerHeight;
         currentTextureCoords += texStep;
-        heightFromTexture = 1. - texture(heightTex, currentTextureCoords).r;
+        heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).w;
         //count += 1;
     }
 
@@ -229,6 +233,14 @@ vec3 fresnelSchlick(float HdotV, vec3 F0){
 			x *= x2;
     return 	F0 + (1. - F0) * x;
 } 
+vec3 fresnelSchlickRoughness(float HdotV, vec3 F0, float rou)
+{
+	float 	x = saturate(1. - HdotV); //x^5
+	float 	x2 = x*x;
+			x2 *= x2;
+			x *= x2;
+    return F0 + (max(vec3(1.0 - rou), F0) - F0) * x;
+}   
 float DistributionGGX(float NdotH, float rou){
 			rou *= rou; //Disney trick!
 			rou *= rou; //roughness^4
@@ -266,7 +278,7 @@ vec3 getRadiance(vec3 V, vec3 N, vec3 lig, vec3 ligCol, vec3 pos, vec3 alb, floa
 
 	vec3 	F0 	= vec3(0.04); 						//dialettric F0
 			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
-	vec3 	F  	= fresnelSchlick(HdotV, F0); 		//compute fresnel
+	vec3 	F  	= fresnelSchlickRoughness(HdotV, F0, rou); 		//compute fresnel
 	float	NDF = DistributionGGX(NdotH, rou);   	//compute NDF term
 	float 	G   = GeometrySmith(NdotV, NdotL, rou); //compute G term   
 	vec3 	spe = (NDF*G*F)/(4.*NdotV*NdotL+0.0001);  
@@ -304,17 +316,18 @@ void main() {
 	if(uv.x > limit.x || uv.y > limit.y || uv.x < 0.0 || uv.y < 0.0){discard; }
 
 	vec3 	alb = texture(albedoTex, uv).rgb;		//albedo color
-			alb = sRGB2lin(alb);			
-	float	rou = texture(roughnessTex, uv).r;		//roughness
-	float	met = texture(metallicTex, uv).r;		//metallic
-	float	occ = texture(aoTex, uv).r;				//ambient occlusion
+			alb = sRGB2lin(alb);	
+	vec4	RMOH = texture(RMOHTex, uv);		
+	float	rou = RMOH.r;//texture(roughnessTex, uv).r;		//roughness
+	float	met = RMOH.g;//texture(metallicTex, uv).r;		//metallic
+	float	occ = RMOH.b;//texture(aoTex, uv).r;				//ambient occlusion
 
 	vec3	V = normalize(eye - pos);				//view direction
 	vec3	tanN = texture(normalTex, uv).rgb * 2. - vec3(1.); 	//normals
 	vec3	N = normalize(TBN * tanN);
 			//N = nor;
 
-	vec3	lin = vec3(0.);							//initialize the out color to 0
+	vec3	radiance = vec3(0.);							//initialize the out color to 0
 
 	//lighting
 	{
@@ -322,7 +335,7 @@ void main() {
 		vec3	tanLigDir = normalize(transTBN * (lig - pos));	//light pos in tangent space
 		float 	sha = parallaxSoftShadowMultiplier(tanLigDir, tanN, uv, height);
 		vec3	ligCol = vec3(1.)*9.;						//light color
-				lin += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+				radiance += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
 				//lin = vec3(sha);
 	}
 	{
@@ -330,39 +343,48 @@ void main() {
 		vec3	tanLigDir = normalize(transTBN * (lig - pos));	//light pos in tangent space
 		float 	sha = parallaxSoftShadowMultiplier(tanLigDir, tanN, uv, height);
 		vec3	ligCol = vec3(0.8, 0.5, 0.1)*9.;				//light color
-				lin += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+				radiance += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
 	}
 	{
 		vec3	lig = vec3(2., -1., 1.);					//light position
 		vec3	tanLigDir = normalize(transTBN * (lig - pos));	//light pos in tangent space
 		float 	sha = parallaxSoftShadowMultiplier(tanLigDir, tanN, uv, height);
 		vec3	ligCol = vec3(0.1, 0.5, 0.9)*9.;				//light color
-				lin += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+				radiance += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
 	}
 	{
 		vec3	lig = vec3(-2., -1., -2.);					//light position
 		vec3	tanLigDir = normalize(transTBN * (lig - pos));	//light pos in tangent space
 		float 	sha = parallaxSoftShadowMultiplier(tanLigDir, tanN, uv, height);
 		vec3	ligCol = vec3(1.)*9.;				//light color
-				lin += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
+				radiance += sha * getRadiance(V, N, lig, ligCol, pos, alb, rou, met); //get radiance for this light
 	}
+
 	vec3 	F0 	= vec3(0.02); 						//dialettric F0
 			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
-	vec3 	kS = fresnelSchlick(clamp(dot(N, V), 0, 1.), F0);
+	float	NdotV = saturate(dot(N, V));
+	vec3 	kS = fresnelSchlickRoughness(NdotV, F0, rou);
 	vec3 	kD = vec3(1.) - kS;
-			height = texture(heightTex, uv).r;
-	vec3 	irradiance = vec3(0.03);//texture(irradianceTex, N).rgb;
-			irradiance *= kD;
-			irradiance *= alb;
-			irradiance *= occ;
-			irradiance *= 1. - (1. - height)*heightScale;
-			lin += irradiance;
+			kD *= 1. - met;
+	vec3 	irradiance = texture(irradianceTex, N).rgb;
+	vec3	diffuse = irradiance * alb * kD;
 
-			lin /= lin + vec3(1.); 		//from HDI lo LDI
+	float 	lod             	= rou*10.;
+	vec3	ref 				= reflect(-V, N);
+	vec3 	prefilteredColor 	= texture(equirectTex, dir2uv(ref), lod).rgb;
+	vec2 	envBRDF          	= texture(integMap, vec2(NdotV, rou)).xy;
+ 	vec3 	specular 			= prefilteredColor * (kS * envBRDF.x + envBRDF.y); 
+
+	vec3 	ambient = (diffuse + specular) * occ; 
+
+ 			col.rgb = radiance + ambient;
+
+ 			//gamma corrections
+			col.rgb /= col.rgb + vec3(1.); 		//from HDI lo LDI
 			//lin = ACES(lin);
-			col.rgb = lin2sRGB(lin);	//gamma correction
+			col.rgb = lin2sRGB(col.rgb);	//gamma correction
 			col.a = 1.;
-			//col.rgb = vec3(kD);
+			//col.rgb = vec3(dFdx(uv.x), dFdx(uv.y), 0.)*100.;
 
 }	
 ]]>
