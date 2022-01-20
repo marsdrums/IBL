@@ -18,11 +18,12 @@
 	<param name="equirectTex"	type="int" default="4" />
 	<param name="integMap"		type="int" default="5" />
 
-	<param name="texRepeat" 	type="vec2" default="1. 1." />
-	<param name="heightScale"	type="float" default="0.0" />
-	<param name="shadowInt"		type="float" default="30." />
-	<param name="triplanarUV"	type="float" default="0." />
-	<param name="triplanarExp"	type="float" default="10." />  
+	<param name="texRepeat" 			type="vec2" 	default="1. 1." />
+	<param name="heightScale"			type="float" 	default="0.0" />
+	<param name="shadowInt"				type="float" 	default="30." />
+	<param name="triplanarUV"			type="float" 	default="0." />
+	<param name="triplanarExp"			type="float" 	default="12." />  
+	<param name="triplanarTexRepeat" 	type="vec2" 	default="0.5 0.5" />
 
 	<language name="glsl" version="1.5">
 		<bind param="pos" 	program="vp" />
@@ -43,11 +44,12 @@
 		<bind param="equirectTex"	program="fp" />
 		<bind param="integMap"		program="fp" />
 
-		<bind param="texRepeat"		program="vp" />
-		<bind param="heightScale"   program="fp" />
-		<bind param="shadowInt" 	program="fp" />
-		<bind param="triplanarUV"	program="fp" />
-		<bind param="triplanarExp"  program="fp" />
+		<bind param="texRepeat"				program="vp" />
+		<bind param="heightScale"   		program="fp" />
+		<bind param="shadowInt" 			program="fp" />
+		<bind param="triplanarUV"			program="fp" />
+		<bind param="triplanarExp"  		program="fp" />
+		<bind param="triplanarTexRepeat" 	program="fp" />
 
 		<program name="vp" type="vertex">
 <![CDATA[
@@ -103,6 +105,7 @@ uniform vec3 eye;
 uniform sampler2D albedoTex, RMOHTex, normalTex, equirectTex, integMap;
 uniform samplerCube irradianceTex;
 uniform float heightScale, shadowInt, triplanarUV, triplanarExp;
+uniform vec2 triplanarTexRepeat;
 
 in jit_PerVertex {
 	smooth 	vec3 nor;
@@ -135,11 +138,11 @@ vec2 dir2uv(vec3 v){
 vec4 triplanar(sampler2D tex, vec3 nor, vec3 pos, float exp){
 
 	vec3 	k = normalize(pow(abs(nor), vec3(exp)));
-	vec2 	Xuv = pos.yz*jit_in.texRepeat;
+	vec2 	Xuv = pos.yz*triplanarTexRepeat;
 			Xuv.x = nor.x < 0. ? Xuv.x : -Xuv.x;
-	vec2 	Yuv = pos.xz*jit_in.texRepeat;
+	vec2 	Yuv = pos.xz*triplanarTexRepeat;
 			Yuv.x = nor.y < 0. ? Yuv.x : -Yuv.x;
-	vec2 	Zuv = pos.xy*jit_in.texRepeat;
+	vec2 	Zuv = pos.xy*triplanarTexRepeat;
 			Zuv.x = nor.z >= 0. ? Zuv.x : -Zuv.x;
 			Xuv.y += 0.5;
 			Zuv.x += 0.5;
@@ -151,11 +154,11 @@ vec4 triplanar(sampler2D tex, vec3 nor, vec3 pos, float exp){
 vec4 triplanarAlb(sampler2D tex, vec3 nor, vec3 pos, float exp){
 
 	vec3 	k = normalize(pow(abs(nor), vec3(exp)));
-	vec2 	Xuv = pos.yz*jit_in.texRepeat;
+	vec2 	Xuv = pos.yz*triplanarTexRepeat;
 			Xuv.x = nor.x < 0. ? Xuv.x : -Xuv.x;
-	vec2 	Yuv = pos.xz*jit_in.texRepeat;
+	vec2 	Yuv = pos.xz*triplanarTexRepeat;
 			Yuv.x = nor.y < 0. ? Yuv.x : -Yuv.x;
-	vec2 	Zuv = pos.xy*jit_in.texRepeat;
+	vec2 	Zuv = pos.xy*triplanarTexRepeat;
 			Zuv.x = nor.z >= 0. ? Zuv.x : -Zuv.x;
 			Xuv.y += 0.5;
 			Zuv.x += 0.5;
@@ -345,6 +348,21 @@ vec3 pointLight(	vec3 lig, vec3 ligCol,
 														getRadiance(V, N, lig, rad, pos, alb, rou, met) :
 														vec3(0.);
 }
+vec3 directionalLight(	vec3 ligDir, vec3 ligCol, 
+						vec3 pos, vec2 uv, float height, 
+						vec3 V, vec3 N, vec3 tanN, 
+						vec3 alb, float rou, float met){
+	
+	vec3	L 		= jit_in.transTBN * ligDir;
+   	float 	NdotL 	= dot(tanN, L);
+
+   	//skip the light calculation if the intensity of the light is too low or the surface
+   	//is not facing the light
+	return 	NdotL > 0. ? 	shadow(NdotL, L, uv, height) *
+							getRadiance(V, N, pos+ligDir, ligCol, pos, alb, rou, met) :
+							vec3(0.);
+}
+
 vec3 ACES(vec3 x){	
     float a = 2.51;
     float b = 0.03;
@@ -419,6 +437,15 @@ void main() {
 									V, N, tanN,
 									alb, rou, met);
 		}
+		{
+			//lighting
+			vec3	ligDir = normalize(vec3(0., 1., 0.));
+			vec3	ligCol = vec3(1.2, 0.9, 1.)*9.;			
+			radiance += directionalLight(	ligDir, ligCol, 
+											jit_in.pos, uv, height,
+											V, N, tanN,
+											alb, rou, met);
+		}
 
 	vec3 	F0 	= vec3(0.02); 						//dialettric F0
 			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
@@ -437,8 +464,11 @@ void main() {
 
 	vec3 	ambient = (diffuse + specular) * occ; 
 
- 			col.rgb = radiance + ambient;
+ 			//col.rgb = radiance + ambient;
  			//col.rgb = ambient;
+ 			col.rgb = radiance;
+
+
 
  			//gamma corrections
 			col.rgb /= col.rgb + vec3(1.); 		//from HDI lo LDI
