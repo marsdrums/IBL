@@ -146,7 +146,7 @@ vec4 triplanar(sampler2D tex, vec3 nor, vec3 pos, float exp){
 	vec4 	X = texture(tex, Xuv)*k.x;
 	vec4 	Y = texture(tex, Yuv)*k.y;
 	vec4 	Z = texture(tex, Zuv)*k.z;
-	return 	X+Y+Z;
+	return 	(X+Y+Z)/(k.x+k.y+k.z);
 }
 vec4 triplanarAlb(sampler2D tex, vec3 nor, vec3 pos, float exp){
 
@@ -168,7 +168,7 @@ vec4 triplanarAlb(sampler2D tex, vec3 nor, vec3 pos, float exp){
 	vec4 	Z = texture(tex, Zuv);
 			Z.rgb = sRGB2lin(Z.rgb);
 			Z *= k.z;
-	return 	X+Y+Z;
+	return 	(X+Y+Z)/(k.x+k.y+k.z);
 }
 //Parallax mapping
 vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
