@@ -20,6 +20,9 @@
 
 	<param name="texRepeat" 	type="vec2" default="1. 1." />
 	<param name="heightScale"	type="float" default="0.0" />
+	<param name="shadowInt"		type="float" default="30." />
+	<param name="triplanarUV"	type="float" default="0." />
+	<param name="triplanarExp"	type="float" default="10." />  
 
 	<language name="glsl" version="1.5">
 		<bind param="pos" 	program="vp" />
@@ -42,6 +45,9 @@
 
 		<bind param="texRepeat"		program="vp" />
 		<bind param="heightScale"   program="fp" />
+		<bind param="shadowInt" 	program="fp" />
+		<bind param="triplanarUV"	program="fp" />
+		<bind param="triplanarExp"  program="fp" />
 
 		<program name="vp" type="vertex">
 <![CDATA[
@@ -59,10 +65,11 @@ out jit_PerVertex {
 	smooth 	vec3 pos;
 	smooth 	vec2 uv;
 	flat 	vec2 texRepeat;
-	smooth	vec3 test;
 	smooth 	vec3 eyePos;
 	smooth	mat3 TBN;
 	smooth	mat3 transTBN;
+	smooth  vec3 modelNor;
+	smooth 	vec3 modelPos;
 } jit_out;
 
 void main() {	
@@ -81,7 +88,9 @@ void main() {
 	jit_out.texRepeat = texRepeat;
 	jit_out.eyePos = (MV * vec4(pos, 1.)).xyz;
 
-	jit_out.test = tan;//vec3(M * vec4(tan, 0.));//testMat*tan;
+	jit_out.modelNor = nor;
+	jit_out.modelPos = pos;
+
 }
 ]]>
 		</program>
@@ -93,7 +102,7 @@ void main() {
 uniform vec3 eye;
 uniform sampler2D albedoTex, RMOHTex, normalTex, equirectTex, integMap;
 uniform samplerCube irradianceTex;
-uniform float heightScale;
+uniform float heightScale, shadowInt, triplanarUV, triplanarExp;
 
 in jit_PerVertex {
 	smooth 	vec3 nor;
@@ -102,10 +111,11 @@ in jit_PerVertex {
 	smooth 	vec3 pos;
 	smooth 	vec2 uv;	
 	flat 	vec2 texRepeat;
-	smooth	vec3 test;
 	smooth  vec3 eyePos;
 	smooth	mat3 TBN;
 	smooth	mat3 transTBN;
+	smooth  vec3 modelNor;
+	smooth  vec3 modelPos;
 } jit_in;
 
 out vec4 col;
@@ -120,6 +130,45 @@ vec2 dir2uv(vec3 v){
     uv *= vec2(-0.1591, 0.3183); //to invert atan
     uv += 0.5;
     return uv;
+}
+//triplanar mapping
+vec4 triplanar(sampler2D tex, vec3 nor, vec3 pos, float exp){
+
+	vec3 	k = normalize(pow(abs(nor), vec3(exp)));
+	vec2 	Xuv = pos.yz*jit_in.texRepeat;
+			Xuv.x = nor.x < 0. ? Xuv.x : -Xuv.x;
+	vec2 	Yuv = pos.xz*jit_in.texRepeat;
+			Yuv.x = nor.y < 0. ? Yuv.x : -Yuv.x;
+	vec2 	Zuv = pos.xy*jit_in.texRepeat;
+			Zuv.x = nor.z >= 0. ? Zuv.x : -Zuv.x;
+			Xuv.y += 0.5;
+			Zuv.x += 0.5;
+	vec4 	X = texture(tex, Xuv)*k.x;
+	vec4 	Y = texture(tex, Yuv)*k.y;
+	vec4 	Z = texture(tex, Zuv)*k.z;
+	return 	X+Y+Z;
+}
+vec4 triplanarAlb(sampler2D tex, vec3 nor, vec3 pos, float exp){
+
+	vec3 	k = normalize(pow(abs(nor), vec3(exp)));
+	vec2 	Xuv = pos.yz*jit_in.texRepeat;
+			Xuv.x = nor.x < 0. ? Xuv.x : -Xuv.x;
+	vec2 	Yuv = pos.xz*jit_in.texRepeat;
+			Yuv.x = nor.y < 0. ? Yuv.x : -Yuv.x;
+	vec2 	Zuv = pos.xy*jit_in.texRepeat;
+			Zuv.x = nor.z >= 0. ? Zuv.x : -Zuv.x;
+			Xuv.y += 0.5;
+			Zuv.x += 0.5;
+	vec4 	X = texture(tex, Xuv);
+			X.rgb = sRGB2lin(X.rgb);
+			X *= k.x;
+	vec4 	Y = texture(tex, Yuv);
+			Y.rgb = sRGB2lin(Y.rgb);
+			Y *= k.y;
+	vec4 	Z = texture(tex, Zuv);
+			Z.rgb = sRGB2lin(Z.rgb);
+			Z *= k.z;
+	return 	X+Y+Z;
 }
 //Parallax mapping
 vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
@@ -219,20 +268,12 @@ float shadow(float NdotL, vec3 L, vec2 initialTexCoord, float initialHeight){
         heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).w;
         //count += 1;
     }
+    shadowMultiplier *= shadowInt;
 
     // Shadowing factor should be 1 if there were no points under the surface
-    return (numSamplesUnderSurface <= 1.) ? 1. : 1. - saturate(shadowMultiplier*30);
-    //return abs(NdotL);
+    return (numSamplesUnderSurface <= 1.) ? 1. : 1. - min((shadowMultiplier), 1.);
 }
 //PBR functions
-vec3 fresnelSchlick(float HdotV, vec3 F0){
-	//Fresnel Schlick approximation
-	float 	x = saturate(1. - HdotV); //x^5
-	float 	x2 = x*x;
-			x2 *= x2;
-			x *= x2;
-    return 	F0 + (1. - F0) * x;
-} 
 vec3 fresnelSchlickRoughness(float HdotV, vec3 F0, float rou)
 {
 	float 	x = saturate(1. - HdotV); //x^5
@@ -323,16 +364,22 @@ void main() {
 	vec2	limit = jit_in.texRepeat;	
 	if(uv.x > limit.x || uv.y > limit.y || uv.x < 0.0 || uv.y < 0.0){discard; }
 
-	vec3 	alb = texture(albedoTex, uv).rgb;		//albedo color
-			alb = sRGB2lin(alb);	
-	vec4	RMOH = texture(RMOHTex, uv);		
+
+	vec3 	alb = triplanarUV == 1. ? 	triplanarAlb(albedoTex, jit_in.modelNor, jit_in.modelPos, triplanarExp).rgb : 
+										sRGB2lin(texture(albedoTex, uv).rgb);		//albedo color
+	vec4	RMOH = triplanarUV == 1.? 	triplanar(RMOHTex, jit_in.modelNor, jit_in.modelPos, triplanarExp) :
+										texture(RMOHTex, uv);		
 	float	rou = RMOH.r;							//roughness
 	float	met = RMOH.g;							//metallic
 	float	occ = RMOH.b;							//ambient occlusion
 
 	vec3	V = normalize(eye - jit_in.pos);				//view direction
-	vec3	tanN = texture(normalTex, uv).rgb * 2. - vec3(1.); 	//normals
-	vec3	N = normalize(jit_in.TBN * tanN);
+	vec3	tanN = triplanarUV == 1.? 	triplanar(normalTex, jit_in.modelNor, jit_in.modelPos, triplanarExp).rgb :
+										texture(normalTex, uv).rgb; 	//normals
+			tanN *= 2.;
+			tanN -= vec3(1.);
+			tanN = normalize(tanN);
+	vec3	N = jit_in.TBN * tanN;
 
 	vec3	radiance = vec3(0.);							//initialize the out color to 0
 
@@ -375,7 +422,7 @@ void main() {
 
 	vec3 	F0 	= vec3(0.02); 						//dialettric F0
 			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
-	float	NdotV = saturate(dot(N, V));
+	float	NdotV = max(dot(N, V), 0.);
 	vec3 	kS = fresnelSchlickRoughness(NdotV, F0, rou);
 	vec3 	kD = vec3(1.) - kS;
 			kD *= 1. - met;
@@ -392,7 +439,6 @@ void main() {
 
  			col.rgb = radiance + ambient;
  			//col.rgb = ambient;
-
 
  			//gamma corrections
 			col.rgb /= col.rgb + vec3(1.); 		//from HDI lo LDI
