@@ -1,0 +1,238 @@
+<jittershader name="fill-flat-quads">
+	<description>Default Shader </description>
+	<param name="pos" type="vec3" state="POSITION" />
+	<param name="uv" type="vec2" state="TEXCOORD" />
+	<param name="nor" type="vec3" state="NORMAL" />
+	<param name="tan" type="vec3" state="TANGENT" />
+	<param name="MVP" type="mat4" state="MODELVIEW_PROJECTION_MATRIX" />
+	<param name="M" type="mat4" state="WORLD_MATRIX" />
+	<param name="NM" type="mat3" state="NORMAL_MATRIX" />
+	<param name="camPos" type="vec3" state="CAMERA_POSITION" />
+
+	<param name="tex0" type="int" default="0" />
+	<param name="roughMap" type="int" default="1" />
+	<param name="metalMap" type="int" default="2" />
+	<param name="albedo" type="int" default="3" />
+	<param name="normDisp" type="int" default="4" />
+
+	<language name="glsl" version="1.5">
+		<bind param="pos" program="vp" />
+		<bind param="uv" program="vp" />
+		<bind param="nor" program="vp" />
+		<bind param="tan" program="vp" />
+		<bind param="MVP" program="vp" />
+		<bind param="M" program="vp" />
+		<bind param="NM" program="vp" />
+		<bind param="camPos" program="fp" />
+
+		<bind param="tex0" program="fp" />
+		<bind param="roughMap" program="fp" />
+		<bind param="metalMap" program="fp" />
+		<bind param="albedo" program="fp" />
+		<bind param="normDisp" program="fp" />
+
+		<program name="vp" type="vertex">
+<![CDATA[
+#version 330 core
+uniform mat4 MVP, M;
+uniform mat3 NM;
+in vec3 pos, nor, tan;
+in vec4 color;
+in vec2 uv;
+
+out jit_PerVertex {
+	smooth 	vec3 nor;
+	smooth  vec3 tan;
+	smooth  vec3 bit;
+	smooth 	vec3 pos;
+	smooth 	vec2 uv;
+} jit_out;
+
+void main() {	
+
+
+	gl_Position = MVP * vec4(pos, 1.);	
+	jit_out.pos = ( M * vec4(pos, 1.)			).xyz; //world pos
+	jit_out.nor = ( M * vec4(nor, 0.)			).xyz; //world normals
+	jit_out.tan = ( M * vec4(tan, 0.)			).xyz; //world tangent
+	jit_out.bit = ( M * vec4(cross(tan, nor),0.)).xyz; //world bitangent
+	jit_out.uv = uv;
+}
+]]>
+		</program>
+		<program name="fp" type="fragment">
+<![CDATA[
+#version 330 core
+#define PI 3.14159265
+#define TWOPI 6.28318531
+
+
+uniform vec3 camPos;
+uniform sampler2D roughMap, metalMap, albedo, normDisp;
+uniform samplerCube tex0;
+
+in jit_PerVertex {
+	smooth 	vec3 nor;
+	smooth  vec3 tan;
+	smooth  vec3 bit;
+	smooth 	vec3 pos;
+	smooth 	vec2 uv;
+} jit_in;
+
+out vec4 col;
+
+//cheap color space conversion
+vec3 lin2sRGB(vec3 col){ return pow(col, vec3(0.454545)); }
+vec3 sRGB2lin(vec3 col){ return pow(col, vec3(2.2)); }
+
+// to keep things simpler to read
+float saturate(float x){ return clamp(x, 0., 1.); }
+vec3 saturate3(vec3 x){ return clamp(x, vec3(0.), vec3(1.)); }
+
+float getDif(vec3 ligDir, vec3 nor){
+	return saturate( dot( ligDir, nor ));
+}
+float getRef(vec3 ligDir, vec3 ref){
+	return 	saturate( dot( ligDir, ref ));
+}
+vec3 equirectangularTexture(sampler2D tex, vec3 dir, float lod) 
+{
+	vec2 uv;
+	uv.x = atan( dir.x, -dir.z ); 
+	uv.y = asin( -dir.y );
+	uv /= vec2(TWOPI, PI);
+	uv += 0.5;
+ 	//return sRGB2lin( textureLod( tex, uv, lod ).xyz );
+	return textureLod( tex, uv, lod ).xyz; //or should i linearize it???
+}
+
+float fresnel(float F0, float F90, float LdotH){
+	float x = 1. - LdotH;
+	float x2 = x*x;
+	return F0 + (F90 - F0) * x2*x2*x;
+}
+//This function computes the diffuse and specular light components using a tweaked Cook-Torrance lighting model
+//and applies those to the shape
+vec3 getBRDF(vec3 mate, vec3 n, vec3 pos, vec3 ligPos, vec3 ligCol, vec3 v, float roughness, float F0){
+//cook rs = (D * G * F) / (4 * (NdotL) * (NdotV));
+//with:
+//n = normal
+//h = half vector
+//l = direction from vertex to light
+//v = direction from vertex to view
+	vec3 	l 		= normalize( ligPos - pos );
+	float	ligDist = length(ligPos - pos);
+			ligCol 	*= 1.0 / (1.0 + 0.1*ligDist + 0.01*ligDist*ligDist); //apply attenuation
+
+	vec3 	h 		= normalize( l + v );
+	float 	NdotL 	= saturate( dot(n,l) );
+	float 	NdotV 	= abs(dot(n,v)) + 1e-5;//saturate( dot(n,v) );
+	float 	NdotH 	= saturate( dot(n,h) );
+	float 	LdotH 	= saturate( dot(l,h) );
+	//roughness *= roughness;
+
+//compute diffuse light
+//__________________________________________________________________________________
+	// Burley 2012, "Physically-Based Shading at Disney"
+    float F90 = 0.5 + 2. * roughness * LdotH * LdotH;
+    float lightScatter = fresnel(1., F90, NdotL);
+    float viewScatter  = fresnel(1., F90, NdotV);
+    float DIF = lightScatter * viewScatter * (1.0 / PI);
+
+//compute specular light
+//____________________________________________________________________________________
+	
+	float D, G, F; //Cook - Torrance coefficients
+
+	//compute D
+	{
+	// Walter et al. 2007, "Microfacet Models for Refraction through Rough Surfaces"
+    	float 	oneMinusNdotHSquared = 1.0 - NdotH * NdotH;
+    	float 	a = NdotH * roughness;
+    	float 	k = roughness / (oneMinusNdotHSquared + a * a);
+    			D = k * k * (1.0 / PI);
+	}
+
+	//compute G
+	{
+	// Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"
+    	float 	a2 = roughness * roughness;
+    	float 	GGXV = NdotL * sqrt((NdotV - a2 * NdotV) * NdotV + a2);
+    	float 	GGXL = NdotV * sqrt((NdotL - a2 * NdotL) * NdotL + a2);
+    	 		G = 0.5 / (GGXV + GGXL);
+	}
+
+	//compute F
+	
+	//float	F = F0 + (1. - F0)*exp2( (-5.55473*VdotH - 6.98316)*VdotH ); /this is possile optimization
+	F = fresnel(F0, 1., LdotH);
+
+	float REF = D * G * F;
+
+//apply the lighting
+//_______________________________________________________________________________________
+	vec3 	col = mate; 
+			col *= DIF*ligCol; //apply the diffuse component
+			col += vec3(REF)*ligCol; //apply the reflected component
+			col *= NdotL; 
+	return 	col;
+}
+
+vec3 ACES(vec3 x){	
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return saturate3((x*(a*x+b))/(x*(c*x+d)+e));
+}
+
+float remap_noise_tri_erp( const float v )
+{
+    float r2 = 0.5 * v;
+    float f1 = sqrt( r2 );
+    float f2 = 1.0 - sqrt( r2 - 0.25 );    
+    return (v < 0.5) ? f1 : f2;
+}
+
+void main() {
+
+	vec3 	pos 		= jit_in.pos;
+	vec3 	viewDir 	= -normalize( pos - camPos );
+	vec3 	nor 		= normalize(jit_in.nor); 
+	vec3 	tan 		= normalize(jit_in.tan); 
+	vec3 	bit 		= normalize(jit_in.bit); 
+	mat3	TBN			= mat3(tan, bit, nor);
+
+	vec2 	uv = jit_in.uv*vec2(1., 1);
+	vec3 	mate = texture(albedo, uv).rgb; //albedo
+			//mate = sRGB2lin(mate);
+	float 	roughness 	= texture(roughMap, uv).r; //roughness map
+	float 	metalness 	= texture(metalMap, uv).r; //metalness map
+			//nor			= normalize( TBN * (texture(normDisp, uv).rgb * 2. - 1.)) ; //normal map
+
+	vec3 	lin = vec3(0.); 
+	metalness *= 0.4;
+	roughness *= 1;
+	//getBRDF(mate, nor, pos, lig, ligCol, viewDir, roughness, metalness);
+	lin += getBRDF(mate, nor, pos, vec3(-1., 0., -1.), vec3(0.5, 0.3, 0.1), viewDir, roughness, metalness);
+	lin += getBRDF(mate, nor, pos, vec3(1., 1., -0.6), vec3(0.1, 0.2, 0.6), viewDir, roughness, metalness);
+	lin += getBRDF(mate, nor, pos, vec3(0., 3., 0.), vec3(1.5), viewDir, roughness, metalness);
+
+	//environment ambient light
+	vec3 env = texture(tex0, nor).rgb * mate;
+	vec3 ref = reflect(viewDir, nor);
+	float F = fresnel(metalness*0.5, 1., 1. - dot(viewDir, nor));
+	//env += equirectangularTexture(tex0, ref, 5 + roughness*14.)* vec3(F)*metalness;
+	lin += env*1;
+
+	col.rgb = lin;
+	col.rgb = ACES(col.rgb);
+	col.rgb = lin2sRGB(col.rgb);
+	col.a = 1;
+
+}	
+]]>
+		</program>
+	</language>
+</jittershader>

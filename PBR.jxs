@@ -12,19 +12,18 @@
 	<param name="eye" 	type="vec3" state="CAMERA_POSITION" />
 	//textures
 	<param name="albedoTex" 	type="int" default="0" />
-	<param name="RMOHTex" 		type="int" default="1" />
-	<param name="normalTex" 	type="int" default="2" />
+	<param name="normalTex" 	type="int" default="1" />
+	<param name="RMOHTex" 		type="int" default="2" />
 	<param name="irradianceTex"	type="int" default="3" />
 	<param name="equirectTex"	type="int" default="4" />
 	<param name="integMap"		type="int" default="5" />
 	<texture file="ibl_brdf_lut.png" type="float16" unit="5" rectangle="0" filter="none none" wrap="repeat repeat"/>
 
-	<param name="texRepeat" 			type="vec2" 	default="1. 1." />
-	<param name="heightScale"			type="float" 	default="0.0" />
-	<param name="shadowInt"				type="float" 	default="30." />
-	<param name="triplanarUV"			type="float" 	default="0." />
-	<param name="triplanarExp"			type="float" 	default="12." />  
-	<param name="triplanarTexRepeat" 	type="vec2" 	default="0.5 0.5" />
+	<param name="texRepeat" 			type="vec2" default="1. 1." />
+	<param name="heightScale"			type="float" default="0.08" />
+	<param name="triplanarUV"   		type="float" default="0." />
+	<param name="triplanarExp"  		type="float" default="12." />
+	<param name="triplanarTexRepeat" 	type="vec2" default="0.5 0.5" />
 
 	<language name="glsl" version="1.5">
 		<bind param="pos" 	program="vp" />
@@ -39,17 +38,16 @@
 		<bind param="eye" 	program="fp" />
 		//textures
 		<bind param="albedoTex" 	program="fp" />
-		<bind param="RMOHTex" 		program="fp" />
 		<bind param="normalTex" 	program="fp" />
-		<bind param="irradianceTex"	program="fp" />
-		<bind param="equirectTex"	program="fp" />
-		<bind param="integMap"		program="fp" />
+		<bind param="RMOHTex" 		program="fp" />
+		<bind param="irradianceTex" program="fp" />
+		<bind param="equirectTex"   program="fp" />
+		<bind param="integMap"      program="fp" />
 
 		<bind param="texRepeat"				program="vp" />
 		<bind param="heightScale"   		program="fp" />
-		<bind param="shadowInt" 			program="fp" />
-		<bind param="triplanarUV"			program="fp" />
-		<bind param="triplanarExp"  		program="fp" />
+		<bind param="triplanarUV"   		program="fp" />
+		<bind param="triplanarExp"			program="fp" />
 		<bind param="triplanarTexRepeat" 	program="fp" />
 
 		<program name="vp" type="vertex">
@@ -69,10 +67,10 @@ out jit_PerVertex {
 	smooth 	vec2 uv;
 	flat 	vec2 texRepeat;
 	smooth 	vec3 eyePos;
-	smooth	mat3 TBN;
-	smooth	mat3 transTBN;
+	smooth  vec3 modelPos;
 	smooth  vec3 modelNor;
-	smooth 	vec3 modelPos;
+	smooth  mat3 TBN;
+	smooth  mat3 transTBN;
 } jit_out;
 
 void main() {	
@@ -80,18 +78,16 @@ void main() {
 	gl_Position = MVP * vec4(pos, 1.);	
 	jit_out.nor = (M * vec4(nor, 0.)).xyz;
 	jit_out.tan = (M * vec4(tan, 0.)).xyz;
+	//jit_out.tan = normalize(jit_out.tan - dot(jit_out.tan, jit_out.nor) * jit_out.nor);
 	jit_out.bit = -cross(jit_out.nor, jit_out.tan);
-	jit_out.TBN 		= mat3(jit_out.tan, jit_out.bit, jit_out.nor);	//TBN matrix
-	jit_out.transTBN 	= transpose(jit_out.TBN);
-
 	jit_out.pos = (M * vec4(pos, 1.)).xyz;
 	jit_out.uv = uv*texRepeat;
 	jit_out.texRepeat = texRepeat;
 	jit_out.eyePos = (MV * vec4(pos, 1.)).xyz;
-
-	jit_out.modelNor = nor;
 	jit_out.modelPos = pos;
-
+	jit_out.modelNor = nor;
+	jit_out.TBN = mat3(jit_out.tan, jit_out.bit, jit_out.nor);
+	jit_out.transTBN = transpose(jit_out.TBN);
 }
 ]]>
 		</program>
@@ -101,9 +97,9 @@ void main() {
 #define PI 3.14159265
 
 uniform vec3 eye;
-uniform sampler2D albedoTex, RMOHTex, normalTex, equirectTex, integMap;
+uniform sampler2D albedoTex, normalTex, RMOHTex, equirectTex, integMap;
 uniform samplerCube irradianceTex;
-uniform float heightScale, shadowInt, triplanarUV, triplanarExp;
+uniform float heightScale, triplanarUV, triplanarExp;
 uniform vec2 triplanarTexRepeat;
 
 in jit_PerVertex {
@@ -114,10 +110,10 @@ in jit_PerVertex {
 	smooth 	vec2 uv;	
 	flat 	vec2 texRepeat;
 	smooth  vec3 eyePos;
-	smooth	mat3 TBN;
-	smooth	mat3 transTBN;
-	smooth  vec3 modelNor;
 	smooth  vec3 modelPos;
+	smooth  vec3 modelNor;
+	smooth  mat3 TBN;
+	smooth  mat3 transTBN;
 } jit_in;
 
 out vec4 col;
@@ -133,16 +129,17 @@ vec2 dir2uv(vec3 v){
     uv += 0.5;
     return uv;
 }
-//triplanar mapping
-vec4 triplanar(sampler2D tex, vec3 nor, vec3 pos, float exp){
 
-	vec3 	k = normalize(pow(abs(nor), vec3(exp)));
-	vec2 	Xuv = pos.yz*triplanarTexRepeat;
-			Xuv.x = nor.x < 0. ? Xuv.x : -Xuv.x;
-	vec2 	Yuv = pos.xz*triplanarTexRepeat;
-			Yuv.x = nor.y < 0. ? Yuv.x : -Yuv.x;
-	vec2 	Zuv = pos.xy*triplanarTexRepeat;
-			Zuv.x = nor.z >= 0. ? Zuv.x : -Zuv.x;
+//triplanar mapping
+vec4 triplanar(sampler2D tex){
+
+	vec3 	k = normalize(pow(abs(jit_in.modelNor), vec3(triplanarExp)));
+	vec2 	Xuv = jit_in.modelPos.yz*triplanarTexRepeat;
+			Xuv.x = jit_in.modelNor.x < 0. ? Xuv.x : -Xuv.x;
+	vec2 	Yuv = jit_in.modelPos.xz*triplanarTexRepeat;
+			Yuv.x = jit_in.modelNor.y < 0. ? Yuv.x : -Yuv.x;
+	vec2 	Zuv = jit_in.modelPos.xy*triplanarTexRepeat;
+			Zuv.x = jit_in.modelNor.z >= 0. ? Zuv.x : -Zuv.x;
 			Xuv.y += 0.5;
 			Zuv.x += 0.5;
 	vec4 	X = texture(tex, Xuv)*k.x;
@@ -150,15 +147,15 @@ vec4 triplanar(sampler2D tex, vec3 nor, vec3 pos, float exp){
 	vec4 	Z = texture(tex, Zuv)*k.z;
 	return 	(X+Y+Z)/(k.x+k.y+k.z);
 }
-vec4 triplanarAlb(sampler2D tex, vec3 nor, vec3 pos, float exp){
+vec4 triplanarAlb(sampler2D tex){
 
-	vec3 	k = normalize(pow(abs(nor), vec3(exp)));
-	vec2 	Xuv = pos.yz*triplanarTexRepeat;
-			Xuv.x = nor.x < 0. ? Xuv.x : -Xuv.x;
-	vec2 	Yuv = pos.xz*triplanarTexRepeat;
-			Yuv.x = nor.y < 0. ? Yuv.x : -Yuv.x;
-	vec2 	Zuv = pos.xy*triplanarTexRepeat;
-			Zuv.x = nor.z >= 0. ? Zuv.x : -Zuv.x;
+	vec3 	k = normalize(pow(abs(jit_in.modelNor), vec3(triplanarExp)));
+	vec2 	Xuv = jit_in.modelPos.yz*triplanarTexRepeat;
+			Xuv.x = jit_in.modelNor.x < 0. ? Xuv.x : -Xuv.x;
+	vec2 	Yuv = jit_in.modelPos.xz*triplanarTexRepeat;
+			Yuv.x = jit_in.modelNor.y < 0. ? Yuv.x : -Yuv.x;
+	vec2 	Zuv = jit_in.modelPos.xy*triplanarTexRepeat;
+			Zuv.x = jit_in.modelNor.z >= 0. ? Zuv.x : -Zuv.x;
 			Xuv.y += 0.5;
 			Zuv.x += 0.5;
 	vec4 	X = texture(tex, Xuv);
@@ -173,13 +170,13 @@ vec4 triplanarAlb(sampler2D tex, vec3 nor, vec3 pos, float exp){
 	return 	(X+Y+Z)/(k.x+k.y+k.z);
 }
 //Parallax mapping
-void parallaxMapping(inout vec2 uv, inout float height, vec3 V, vec2 texRepeat){
+vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
 	//compute texture coordinates ratio
 	float uvRatio = texRepeat.x / texRepeat.y;
 	V.x *= uvRatio;
 
    	// determine optimal number of layers
-   	const float minLayers = 150;
+   	const float minLayers = 300;
    	const float maxLayers = 300;
    	float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
 
@@ -191,12 +188,12 @@ void parallaxMapping(inout vec2 uv, inout float height, vec3 V, vec2 texRepeat){
    	vec2 dtex = heightScale * V.xy / V.z / numLayers;
 
    	// current texture coordinates
-   	//vec2 currentTextureCoords = uv;
+   	vec2 currentTextureCoords = T;
 
-   	float lod = ( 1. - abs(dot(vec3(0, 0, 1), V)))*0.;
+   	float lod = 0.;//( 1. - abs(dot(vec3(0, 0, 1), V)))*0.;
 
   	// depth from heightmap
-   	float heightFromTexture = 1. - textureLod(RMOHTex, uv, lod).w;
+   	float heightFromTexture = 1. - textureLod(RMOHTex, currentTextureCoords, lod).a;
 
    	// while point is above the surface
    	while(heightFromTexture > curLayerHeight) 
@@ -204,36 +201,40 @@ void parallaxMapping(inout vec2 uv, inout float height, vec3 V, vec2 texRepeat){
       	// to the next layer
       	curLayerHeight += layerHeight; 
       	// shift of texture coordinates
-      	uv -= dtex;
+      	currentTextureCoords -= dtex;
       	// new depth from heightmap
-      	heightFromTexture = 1. - textureLod(RMOHTex, uv, lod).w;
+      	heightFromTexture = 1. - textureLod(RMOHTex, currentTextureCoords, lod).a;
    	}
 
    	///////////////////////////////////////////////////////////
 
    	// previous texture coordinates
-   	vec2 prevTCoords = uv + dtex;
+   	vec2 prevTCoords = currentTextureCoords + dtex;
 
    	// heights for linear interpolation
    	float nextH = heightFromTexture - curLayerHeight;
-   	float prevH = 1. - textureLod(RMOHTex, prevTCoords, lod).w
+   	float prevH = 1. - textureLod(RMOHTex, prevTCoords, lod).a
                            - curLayerHeight + layerHeight;
 
    	// proportions for linear interpolation
    	float weight = nextH / (nextH - prevH);
 
    	// interpolation of texture coordinates
-   	vec2 finalTexCoords = prevTCoords * weight + uv * (1.0-weight);
+   	vec2 finalTexCoords = prevTCoords * weight + currentTextureCoords * (1.0-weight);
 
    	// interpolation of depth values
    	// curLayerHeight + prevH * weight + nextH * (1.0 - weight);
 
    	// return result
-   	uv = finalTexCoords;
-   	height = curLayerHeight + prevH * weight + nextH * (1.0 - weight);	
-	if(uv.x > jit_in.texRepeat.x || uv.y > jit_in.texRepeat.y || uv.x < 0.0 || uv.y < 0.0){discard; }
+   	return vec3(finalTexCoords, curLayerHeight + prevH * weight + nextH * (1.0 - weight));
 }
-float shadow(float NdotL, vec3 L, vec2 initialTexCoord, float initialHeight){
+float shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
+
+
+
+   // calculate lighting only for surface oriented to the light source
+   float NdotL = dot(N, L);
+   if(NdotL < 0.0) {return 0.;}
 
    const float minLayers = 200;
    const float maxLayers = 200;
@@ -248,7 +249,7 @@ float shadow(float NdotL, vec3 L, vec2 initialTexCoord, float initialHeight){
     // current parameters
     float currentLayerHeight = initialHeight - layerHeight;
     vec2 currentTextureCoords = initialTexCoord + texStep;
-    float heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).w;
+    float heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).a;
     float stepIndex = 1.;
 
     //int count = 0;
@@ -269,13 +270,13 @@ float shadow(float NdotL, vec3 L, vec2 initialTexCoord, float initialHeight){
         stepIndex += 1.;
         currentLayerHeight -= layerHeight;
         currentTextureCoords += texStep;
-        heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).w;
+        heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).a;
         //count += 1;
     }
-    shadowMultiplier *= shadowInt;
 
     // Shadowing factor should be 1 if there were no points under the surface
-    return (numSamplesUnderSurface <= 1.) ? 1. : 1. - min((shadowMultiplier), 1.);
+    return (numSamplesUnderSurface <= 1.) ? 1. : 1. - saturate(shadowMultiplier*30);
+    //return abs(NdotL);
 }
 //PBR functions
 vec3 fresnelSchlickRoughness(float HdotV, vec3 F0, float rou){
@@ -284,7 +285,7 @@ vec3 fresnelSchlickRoughness(float HdotV, vec3 F0, float rou){
 			x2 *= x2;
 			x *= x2;
     return F0 + (max(vec3(1.0 - rou), F0) - F0) * x;
-}   
+} 
 float DistributionGGX(float NdotH, float rou){
 			rou *= rou; //Disney trick!
 			rou *= rou; //roughness^4
@@ -306,10 +307,13 @@ float GeometrySmith(float NdotV, float NdotL, float rou){
 	
     return ggx1 * ggx2;
 } 
-vec3 getRadiance(vec3 V, vec3 N, vec3 lig, vec3 rad, vec3 pos, vec3 alb, float rou, float met){
+vec3 getRadiance(vec3 V, vec3 N, vec3 L, vec3 rad, vec3 pos, vec3 alb, float rou, float met){
 
-	vec3	L = normalize(lig - pos);				//light direction
+	//vec3	L = normalize(lig - pos);				//light direction
 	vec3	H = normalize(V + L);					//half vector
+	//float	ligDis = length(lig - pos);		
+	//float	att = 1. / (ligDis*ligDis);				//light attenuation
+	//vec3	rad = ligCol * att;						//radiance
 
 	//compute dot products
 	float	HdotV = saturate(dot(H, V));
@@ -330,36 +334,25 @@ vec3 getRadiance(vec3 V, vec3 N, vec3 lig, vec3 rad, vec3 pos, vec3 alb, float r
 
 	return 	(kD * alb / PI + spe) * rad * NdotL;
 }
-vec3 pointLight(	vec3 lig, vec3 ligCol, 
-					vec3 pos, vec2 uv, float height, 
-					vec3 V, vec3 N, vec3 tanN, 
-					vec3 alb, float rou, float met){
-
-	float	ligDis 	= length(lig - pos);		
-	float	att 	= 1. / (ligDis*ligDis);				//light attenuation
-	vec3	L 		= normalize(jit_in.transTBN * (lig - pos));
-   	float 	NdotL 	= dot(tanN, L);
-   	vec3	rad 	= ligCol * att;
-
-   	//skip the light calculation if the intensity of the light is too low or the surface
-   	//is not facing the light
-	return 	rad.r+rad.g+rad.b > 0.01 && NdotL > 0. ? 	shadow(NdotL, L, uv, height) *
-														getRadiance(V, N, lig, rad, pos, alb, rou, met) :
-														vec3(0.);
-}
-vec3 directionalLight(	vec3 ligDir, vec3 ligCol, 
-						vec3 pos, vec2 uv, float height, 
-						vec3 V, vec3 N, vec3 tanN, 
-						vec3 alb, float rou, float met){
+		
+vec3	pointLight(	vec3 lig, vec3 ligCol, vec3 V, vec3 N, vec3 tanN, vec3 pos, vec2 uv, float height, vec3 alb, float rou, float met){
+		
+	vec3	ligMinPos 	= lig - pos;
+	float	ligDis 		= length(ligMinPos);	
+	vec3	L 			= ligMinPos/ligDis;				//light direction
+	vec3	rad 		= ligCol / (ligDis*ligDis);						//radiance
+	vec3	tanLigDir 	= normalize(jit_in.transTBN * ligMinPos);	//light pos in tangent space
+	bool	compute 	= rad.x+rad.y+rad.z > 0.05;
+	return  compute ? 	shadow(tanLigDir, tanN, uv, height) * 
+						getRadiance(V, N, L, rad, pos, alb, rou, met) :
+						vec3(0.); //get radiance for this light
+}	
+vec3	directionalLight(	vec3 ligDir, vec3 ligCol, vec3 V, vec3 N, vec3 tanN, vec3 pos, vec2 uv, float height, vec3 alb, float rou, float met){
 	
-	vec3	L 		= jit_in.transTBN * ligDir;
-   	float 	NdotL 	= dot(tanN, L);
-
-   	//skip the light calculation if the surface is not facing the light
-	return 	NdotL > 0. ? 	shadow(NdotL, L, uv, height) *
-							getRadiance(V, N, pos+ligDir, ligCol, pos, alb, rou, met) :
-							vec3(0.);
-}
+	vec3	tanLigDir 	= normalize(jit_in.transTBN * ligDir);	//light pos in tangent space
+	return  shadow(tanLigDir, tanN, uv, height) * 
+			getRadiance(V, N, ligDir, ligCol, pos, alb, rou, met); //get radiance for this light
+}		
 vec3 ACES(vec3 x){	
     float a = 2.51;
     float b = 0.03;
@@ -371,76 +364,56 @@ vec3 ACES(vec3 x){
 void main() {
 
 	//prepare parallax mapping
-	vec3	tanV = normalize(jit_in.transTBN * (eye - jit_in.pos));		//tangent view direction
-	vec2	uv = jit_in.uv;
-	float	height;
-	parallaxMapping(uv, height, tanV, jit_in.texRepeat);	//texture coordinates
+	vec3	tanV 		= normalize(jit_in.transTBN * (eye - jit_in.pos));		//tangent view direction
+	vec3 	uvHeight 	= parallaxMapping(jit_in.uv, tanV, jit_in.texRepeat);	//texture coordinates
+	vec2	uv 			= uvHeight.xy;
+	float	height 		= uvHeight.z;
+	
+	if(uv.x > jit_in.texRepeat.x || uv.y > jit_in.texRepeat.y || uv.x < 0.0 || uv.y < 0.0){discard; }
 
-	//read textures
 	bool	triplanarTexturing = triplanarUV == 1.;
-	vec3 	alb 	= triplanarTexturing ? 	triplanarAlb(albedoTex, jit_in.modelNor, jit_in.modelPos, triplanarExp).rgb : 
-											sRGB2lin(texture(albedoTex, uv).rgb);		//albedo color
-	vec4	RMOH 	= triplanarTexturing ? 	triplanar(RMOHTex, jit_in.modelNor, jit_in.modelPos, triplanarExp) :
-											texture(RMOHTex, uv);		
-	float	rou = RMOH.r;							//roughness
-	float	met = RMOH.g;							//metallic
-	float	occ = RMOH.b;							//ambient occlusion
 
-	vec3	V = normalize(eye - jit_in.pos);				//view direction
-	vec3	tanN 	= triplanarTexturing ? 	triplanar(normalTex, jit_in.modelNor, jit_in.modelPos, triplanarExp).rgb :
-											texture(normalTex, uv).rgb; 	//normals
-			tanN *= 2.;
-			tanN -= vec3(1.);
-			tanN = normalize(tanN);
-	vec3	N = jit_in.TBN * tanN;
+	vec3 	alb = 	triplanarTexturing ? triplanarAlb(albedoTex).rgb 	: sRGB2lin(texture(albedoTex, uv).rgb);	//albedo color	
+	vec4	RMOH = 	triplanarTexturing ? triplanar(RMOHTex) 			: texture(RMOHTex, uv);			//roughness
+	float	rou = 	RMOH.r;			//roughness
+	float	met = 	RMOH.g;			//metallic
+	float	occ = 	RMOH.b;			//ambient occlusion
 
-	vec3	radiance = vec3(0.);							//initialize the out color to 0
+	vec3	V 		= normalize(eye - jit_in.pos);				//view direction
+	vec3	tanN 	= triplanarTexturing ? triplanar(normalTex).rgb : texture(normalTex, uv).rgb; 			//normals
+			tanN 	*= 2.;
+			tanN 	-= 1.;
+			tanN 	= normalize(tanN);
+	vec3	N 		= normalize(jit_in.TBN * tanN);
 
-		{
-			//lighting
-			vec3	lig = vec3(1., 3., 0.);
-			vec3	ligCol = vec3(9.);
-			radiance += pointLight(	lig, ligCol, 			//light position, light color
-									jit_in.pos, uv, height, //frag position, uv, height
-									V, N, tanN,				//view vector, normal, tangent space normal
-									alb, rou, met);			//albedo, roughness, metalness
-		}
-		{
-			//lighting
-			vec3	lig = vec3(-2., 1., -1.);
-			vec3	ligCol = vec3(0.8, 0.5, 0.1)*9.;
-			radiance += pointLight(	lig, ligCol, 
-									jit_in.pos, uv, height,
-									V, N, tanN,
-									alb, rou, met);
-		}
-		{
-			//lighting
-			vec3	lig = vec3(2., -1., 1.);
-			vec3	ligCol = vec3(0.1, 0.5, 0.9)*9.;
-			radiance += pointLight(	lig, ligCol, 
-									jit_in.pos, uv, height,
-									V, N, tanN,
-									alb, rou, met);
-		}
-		{
-			//lighting
-			vec3	lig = vec3(-2., -1., -2.);
-			vec3	ligCol = vec3(1.)*9.;			
-			radiance += pointLight(	lig, ligCol, 
-									jit_in.pos, uv, height,
-									V, N, tanN,
-									alb, rou, met);
-		}
-		{
-			//lighting
-			vec3	ligDir = normalize(vec3(1., 1., 0.));
-			vec3	ligCol = vec3(0.9, 0.9, 1.5)*9.;			
-			radiance += directionalLight(	ligDir, ligCol, 
-											jit_in.pos, uv, height,
-											V, N, tanN,
-											alb, rou, met);
-		}
+	vec3	radiance = vec3(0.);								//initialize the out color to 0
+
+	//lighting
+	{
+		vec3	lig 		= vec3(1., 3., 0.);					//light position
+		vec3	ligCol 		= vec3(1.)*9.;
+				radiance 	+= pointLight(lig, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+	}
+	{
+		vec3	lig 		= vec3(-2., 1., -1.);				//light position
+		vec3	ligCol 		= vec3(0.8, 0.5, 0.1)*9.;
+				radiance 	+= pointLight(lig, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+	}
+	{
+		vec3	lig 		= vec3(2., -1., 1.);				//light position
+		vec3	ligCol 		= vec3(0.1, 0.5, 0.9)*9.;
+				radiance 	+= pointLight(lig, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+	}
+	{
+		vec3	lig 		= vec3(-2., -1., -2.);				//light position
+		vec3	ligCol 		= vec3(1.)*9.;	
+				radiance 	+= pointLight(lig, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+	}
+	{
+		vec3	ligDir 		= normalize(vec3(0., 1., 0.));		//light direction
+		vec3	ligCol 		= vec3(1.)*9.;	
+				radiance 	+= directionalLight(ligDir, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+	}
 
 	vec3 	F0 	= vec3(0.02); 						//dialettric F0
 			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
@@ -460,8 +433,9 @@ void main() {
 	vec3 	ambient = (diffuse + specular) * occ; 
 
  			col.rgb = radiance + ambient; //put this one back!!!!
- 			//col.rgb = ambient;
+ 			//col.rgb = specular;
  			//col.rgb = radiance;
+ 			//col.rgb = irradiance;
 
  			//gamma corrections
 			col.rgb /= col.rgb + vec3(1.); 		//from HDI lo LDI
