@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 597.0, 85.0, 1594.0, 1280.0 ],
+		"rect" : [ 814.0, 88.0, 1704.0, 1280.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -39,6 +39,42 @@
 		"subpatcher_template" : "",
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
+				"box" : 				{
+					"id" : "obj-20",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 1140.0, 861.0, 55.0, 22.0 ],
+					"text" : "jit.gl.light"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-12",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 338.0, 774.0, 137.0, 22.0 ],
+					"text" : "setall 1. 0.5 0.5 1., bang"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-8",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "bang" ],
+					"patching_rect" : [ 338.0, 741.0, 58.0, 22.0 ],
+					"text" : "loadbang"
+				}
+
+			}
+, 			{
 				"box" : 				{
 					"id" : "obj-14",
 					"maxclass" : "button",
@@ -1523,12 +1559,13 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-93",
+					"linecount" : 2,
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 1213.200000000000045, 185.0, 490.0, 22.0 ],
-					"text" : "jit.gl.texture @rectangle 0 @name equirect @rectangle 0 @type float16 @mipmap trilinear"
+					"patching_rect" : [ 1213.200000000000045, 168.0, 493.0, 36.0 ],
+					"text" : "jit.gl.texture @rectangle 0 @name equirect @rectangle 0 @type float16 @mipmap trilinear @defaultimage black"
 				}
 
 			}
@@ -1600,7 +1637,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 1517.0, 484.0, 70.0, 22.0 ],
+					"patching_rect" : [ 1517.0, 491.0, 70.0, 22.0 ],
 					"text" : "loadmess 0"
 				}
 
@@ -1613,7 +1650,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "int" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 1517.0, 517.0, 24.0, 24.0 ]
+					"patching_rect" : [ 1517.0, 525.0, 24.0, 24.0 ]
 				}
 
 			}
@@ -1660,7 +1697,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 1141.83333333333394, 484.0, 346.0, 22.0 ],
+					"patching_rect" : [ 1141.83333333333394, 491.0, 346.0, 22.0 ],
 					"text" : "jit.gl.slab @file rect2cubeIrradiance.jxs @inputs 1 @rectangle 0"
 				}
 
@@ -1668,12 +1705,13 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-75",
+					"linecount" : 2,
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 1141.83333333333394, 450.0, 605.0, 22.0 ],
-					"text" : "jit.gl.texture @rectangle 0 @wrap repeat repeat repeat @adapt 0 @type float32 @dim 256 128 @colormode rgb"
+					"patching_rect" : [ 1141.83333333333394, 450.0, 609.0, 36.0 ],
+					"text" : "jit.gl.texture @rectangle 0 @wrap repeat repeat repeat @adapt 0 @type float32 @dim 256 128 @colormode rgb @defaultimage black"
 				}
 
 			}
@@ -1903,6 +1941,13 @@
 				"patchline" : 				{
 					"destination" : [ "obj-19", 0 ],
 					"source" : [ "obj-118", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-183", 0 ],
+					"source" : [ "obj-12", 0 ]
 				}
 
 			}
@@ -2714,6 +2759,13 @@
 					"destination" : [ "obj-93", 0 ],
 					"order" : 0,
 					"source" : [ "obj-79", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-12", 0 ],
+					"source" : [ "obj-8", 0 ]
 				}
 
 			}
