@@ -136,21 +136,12 @@ struct 	geometry{
 	vec2	uv;
 };
 
-struct 	pointLight{
-	vec3	ligPos;
-	vec3	ligCol;
-};
-
-struct	directionalLight{
-	vec3	ligDir;
-	vec3	ligCol;
-};
-
-struct spotLight{
-	vec3	ligPos;
-	vec3	ligDir;
-	float 	theta;
-	float 	phi;
+struct light{
+	vec3  	ligPos;
+	vec3    ligCol;
+	vec3  	ligDir;
+	float  	cutoffInner;
+	float  	cutoffOuter;
 };
 
 out vec4 col;
@@ -373,23 +364,31 @@ vec3 	getRadiance(vec3 V, vec3 N, vec3 L, vec3 rad, vec3 pos, vec3 alb, float ro
 
 	return 	(kD * alb / PI + spe) * rad * NdotL;
 }		
-vec3	getPointLight(in pointLight pLig, in material mate, in geometry geom){
+vec3	getPointLight(in light lig, in material mate, in geometry geom){
 		
-	vec3	ligMinPos 	= pLig.ligPos - geom.pos;
+	vec3	ligMinPos 	= lig.ligPos - geom.pos;
 	float	ligDis 		= length(ligMinPos);	
 	vec3	L 			= ligMinPos/ligDis;				//light direction
-	vec3	rad 		= pLig.ligCol / (ligDis*ligDis);						//radiance
+	vec3	rad 		= lig.ligCol / (ligDis*ligDis);						//radiance
 	vec3	tanLigDir 	= normalize(jit_in.transTBN * ligMinPos);	//light pos in tangent space
 	bool	compute 	= rad.x+rad.y+rad.z > 0.05;
 	return  compute ? 	( selfShadowing == 1. ? shadow(tanLigDir, geom.tanN, geom.uv, mate.height) : 1.) * 
 						getRadiance(geom.V, geom.N, L, rad, geom.pos, mate.alb, mate.rou, mate.met) :
 						vec3(0.); //get radiance for this light
 }	
-vec3	getDirectionalLight(in directionalLight dLig, in material mate, in geometry geom){
+vec3	getDirectionalLight(in light lig, in material mate, in geometry geom){
 	
-	vec3	tanLigDir 	= normalize(jit_in.transTBN * dLig.ligDir);	//light pos in tangent space
+	vec3	tanLigDir 	= normalize(jit_in.transTBN * lig.ligDir);	//light pos in tangent space
 	return  ( selfShadowing == 1. ? shadow(tanLigDir, geom.tanN, geom.uv, mate.height) : 1.) * 
-			getRadiance(geom.V, geom.N, dLig.ligDir, dLig.ligCol, geom.pos, mate.alb, mate.rou, mate.met); //get radiance for this light
+			getRadiance(geom.V, geom.N, lig.ligDir, lig.ligCol, geom.pos, mate.alb, mate.rou, mate.met); //get radiance for this light
+}
+vec3  	getSpotLight(in light lig, in material mate, in geometry geom){
+
+	vec3 pointLigDir = normalize(lig.ligPos - geom.pos);
+	float theta = dot(pointLigDir, -lig.ligDir);
+	float epsilon   = lig.cutoffInner - lig.cutoffOuter;
+	float intensity = saturate((theta - lig.cutoffOuter) / epsilon);  
+	return theta < lig.cutoffOuter ? getPointLight(lig, mate, geom)*intensity : vec3(0.);
 }	
 vec3  	getIBL(in material mate, in geometry geom){
 
@@ -420,18 +419,19 @@ vec3 	ACES(vec3 x){
 }
 void 	main() {
 
-	material mate;
-	geometry geom;
+	material 	mate;
+	geometry 	geom;
+	light 		lig;
+
+	bool	triplanarTexturing = triplanarUV == 1.;
 
 	//prepare parallax mapping
 			geom.uv 	= jit_in.uv;
 			geom.pos  	= jit_in.pos;
-			mate.height = 1. - texture(RMOHTex, geom.uv).w;
+			mate.height = 1. - (triplanarTexturing ? triplanar(RMOHTex).w : texture(RMOHTex, geom.uv).w);
 
 	if(parallaxMapping == 1.){parallax(mate, geom);}	//texture coordinates
 	
-	bool	triplanarTexturing = triplanarUV == 1.;
-
 	vec4	RMOH 		= triplanarTexturing ? triplanar(RMOHTex) 			: texture(RMOHTex, geom.uv);	
 			mate.alb 	= triplanarTexturing ? triplanarAlb(albedoTex).rgb 	: sRGB2lin(texture(albedoTex, geom.uv).rgb);	
 			mate.rou 	= RMOH.r;	//roughness
@@ -441,41 +441,47 @@ void 	main() {
 			geom.V 		= normalize(eye - jit_in.pos);				//view direction
 			geom.tanN 	= normalize( (triplanarTexturing ? triplanar(normalTex) : texture(normalTex, geom.uv) ).rgb*2. - 1.);
 			geom.N 		= normalize(jit_in.TBN * geom.tanN);
+			geom.pos    += geom.N * heightScale;
 
 	//lighting
 	vec3	radiance = vec3(0.); //initialize the out color 
-
-	pointLight 			pLig;
-	directionalLight 	dLig;
-
+/*
 	{
-		pLig.ligPos	= vec3(1., 3., 0.);					//light position
-		pLig.ligCol = vec3(1.)*9.;
-		radiance 	+= getPointLight(pLig, mate, geom);
+		lig.ligPos	= vec3(1., 3., 0.);					//light position
+		lig.ligCol = vec3(1.)*9.;
+		radiance 	+= getPointLight(lig, mate, geom);
 	}
 	{
-		pLig.ligPos	= vec3(-2., 1., -1.);				//light position
-		pLig.ligCol = vec3(0.8, 0.5, 0.1)*9.;
-		radiance 	+= getPointLight(pLig, mate, geom);
+		lig.ligPos	= vec3(-2., 1., -1.);				//light position
+		lig.ligCol = vec3(0.8, 0.5, 0.1)*9.;
+		radiance 	+= getPointLight(lig, mate, geom);
 	}
 	{
-		pLig.ligPos	= vec3(2., -1., 1.);				//light position
-		pLig.ligCol = vec3(0.1, 0.5, 0.9)*9.;
-		radiance 	+= getPointLight(pLig, mate, geom);
+		lig.ligPos	= vec3(2., -1., 1.);				//light position
+		lig.ligCol = vec3(0.1, 0.5, 0.9)*9.;
+		radiance 	+= getPointLight(lig, mate, geom);
 	}
 	{
-		pLig.ligPos	= vec3(-2., -1., -2.);				//light position
-		pLig.ligCol = vec3(1.)*9.;	
-		radiance 	+= getPointLight(pLig, mate, geom);
+		lig.ligPos	= vec3(-2., -1., -2.);				//light position
+		lig.ligCol = vec3(1.)*9.;	
+		radiance 	+= getPointLight(lig, mate, geom);
 	}
 	{
-		dLig.ligDir = normalize(vec3(0., 1., 0.));		//light direction
-		dLig.ligCol = vec3(1.)*9.;	
-		radiance 	+= getDirectionalLight(dLig, mate, geom);
+		lig.ligDir = normalize(vec3(0., 1., 0.));		//light direction
+		lig.ligCol = vec3(1.)*9.;	
+		radiance 	+= getDirectionalLight(lig, mate, geom);
 	}
-
- 	col.rgb = radiance + getIBL(mate, geom); //put this one back!!!!
-
+	*/
+	{
+		lig.ligDir = normalize(vec3(0., 1., 0.));		//light direction
+		lig.ligCol = vec3(1.)*9.;	
+		lig.ligPos = vec3(0., 1., 0.);
+		lig.cutoffInner = -0.7;
+		lig.cutoffOuter = -0.6;
+		radiance 	+= getSpotLight(lig, mate, geom);
+	}
+ 	//col.rgb = radiance + getIBL(mate, geom); //put this one back!!!!
+ 	col.rgb = radiance;
  	//gamma corrections
 	col.rgb /= col.rgb + vec3(1.);  //from HDI lo LDI
 	//lin = ACES(lin);
