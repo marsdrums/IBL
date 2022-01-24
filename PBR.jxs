@@ -116,6 +116,39 @@ in jit_PerVertex {
 	smooth  mat3 transTBN;
 } jit_in;
 
+struct 	material{
+	vec3 	alb;
+	float 	occ;
+	float 	met;
+	float 	rou;
+	float 	height;
+};
+
+struct 	geometry{
+	vec3	V;
+	vec3	N;
+	vec3	tanN;
+	vec3	pos;
+	vec2	uv;
+};
+
+struct 	pointLight{
+	vec3	ligPos;
+	vec3	ligCol;
+};
+
+struct	directionalLight{
+	vec3	ligDir;
+	vec3	ligCol;
+};
+
+struct spotLight{
+	vec3	ligPos;
+	vec3	ligDir;
+	float 	theta;
+	float 	phi;
+};
+
 out vec4 col;
 
 //utilities
@@ -123,7 +156,7 @@ vec3 	lin2sRGB(vec3 x){ return pow(x, vec3(0.4545454545));}
 vec3 	sRGB2lin(vec3 x){ return pow(x, vec3(2.2));}
 float 	saturate(float x){ return clamp(x, 0., 1.);}
 vec3 	saturate3(vec3 x){ return clamp(x, vec3(0.), vec3(1.));}
-vec2 dir2uv(vec3 v){
+vec2 	dir2uv(vec3 v){
     vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
     uv *= vec2(-0.1591, 0.3183); //to invert atan
     uv += 0.5;
@@ -131,7 +164,7 @@ vec2 dir2uv(vec3 v){
 }
 
 //triplanar mapping
-vec4 triplanar(sampler2D tex){
+vec4 	triplanar(sampler2D tex){
 
 	vec3 	k = normalize(pow(abs(jit_in.modelNor), vec3(triplanarExp)));
 	vec2 	Xuv = jit_in.modelPos.yz*triplanarTexRepeat;
@@ -147,7 +180,7 @@ vec4 triplanar(sampler2D tex){
 	vec4 	Z = texture(tex, Zuv)*k.z;
 	return 	(X+Y+Z)/(k.x+k.y+k.z);
 }
-vec4 triplanarAlb(sampler2D tex){
+vec4 	triplanarAlb(sampler2D tex){
 
 	vec3 	k = normalize(pow(abs(jit_in.modelNor), vec3(triplanarExp)));
 	vec2 	Xuv = jit_in.modelPos.yz*triplanarTexRepeat;
@@ -170,7 +203,7 @@ vec4 triplanarAlb(sampler2D tex){
 	return 	(X+Y+Z)/(k.x+k.y+k.z);
 }
 //Parallax mapping
-vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
+vec3 	parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
 	//compute texture coordinates ratio
 	float uvRatio = texRepeat.x / texRepeat.y;
 	V.x *= uvRatio;
@@ -228,7 +261,7 @@ vec3 parallaxMapping(vec2 T, vec3 V, vec2 texRepeat){
    	// return result
    	return vec3(finalTexCoords, curLayerHeight + prevH * weight + nextH * (1.0 - weight));
 }
-float shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
+float 	shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
 
 
 
@@ -279,14 +312,14 @@ float shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
     //return abs(NdotL);
 }
 //PBR functions
-vec3 fresnelSchlickRoughness(float HdotV, vec3 F0, float rou){
+vec3 	fresnelSchlickRoughness(float HdotV, vec3 F0, float rou){
 	float 	x = saturate(1. - HdotV); //x^5
 	float 	x2 = x*x;
 			x2 *= x2;
 			x *= x2;
     return F0 + (max(vec3(1.0 - rou), F0) - F0) * x;
 } 
-float DistributionGGX(float NdotH, float rou){
+float 	DistributionGGX(float NdotH, float rou){
 			rou *= rou; //Disney trick!
 			rou *= rou; //roughness^4
      		NdotH *= NdotH; //square the dot product
@@ -296,18 +329,18 @@ float DistributionGGX(float NdotH, float rou){
 	
     return 	rou / denom;
 }
-float GeometrySchlickGGX(float NdotV, float rou){
+float 	GeometrySchlickGGX(float NdotV, float rou){
 			rou += 1.;
     float 	k = (rou*rou) / 8.0; //Disney trick again...
     return NdotV / ( NdotV * (1.0 - k) + k );
 }
-float GeometrySmith(float NdotV, float NdotL, float rou){
+float 	GeometrySmith(float NdotV, float NdotL, float rou){
     float ggx2  = GeometrySchlickGGX(NdotV, rou);
     float ggx1  = GeometrySchlickGGX(NdotL, rou);
 	
     return ggx1 * ggx2;
 } 
-vec3 getRadiance(vec3 V, vec3 N, vec3 L, vec3 rad, vec3 pos, vec3 alb, float rou, float met){
+vec3 	getRadiance(vec3 V, vec3 N, vec3 L, vec3 rad, vec3 pos, vec3 alb, float rou, float met){
 
 	//vec3	L = normalize(lig - pos);				//light direction
 	vec3	H = normalize(V + L);					//half vector
@@ -317,7 +350,7 @@ vec3 getRadiance(vec3 V, vec3 N, vec3 L, vec3 rad, vec3 pos, vec3 alb, float rou
 
 	//compute dot products
 	float	HdotV = saturate(dot(H, V));
-    float 	NdotV = saturate(dot(N, V)) + 0.001; //avoid deviding by 0
+    float 	NdotV = saturate(dot(N, V)) + 0.001; //avoid dividing by 0
     float 	NdotL = saturate(dot(N, L));
     float   NdotH = saturate(dot(N, H));
 
@@ -333,27 +366,45 @@ vec3 getRadiance(vec3 V, vec3 N, vec3 L, vec3 rad, vec3 pos, vec3 alb, float rou
 			kD *= 1.0 - met;		//nullify k diffuse if metallic
 
 	return 	(kD * alb / PI + spe) * rad * NdotL;
-}
+}		
+vec3	getPointLight(	in pointLight pLig, in material mate, in geometry geom){
 		
-vec3	pointLight(	vec3 lig, vec3 ligCol, vec3 V, vec3 N, vec3 tanN, vec3 pos, vec2 uv, float height, vec3 alb, float rou, float met){
-		
-	vec3	ligMinPos 	= lig - pos;
+	vec3	ligMinPos 	= pLig.ligPos - geom.pos;
 	float	ligDis 		= length(ligMinPos);	
 	vec3	L 			= ligMinPos/ligDis;				//light direction
-	vec3	rad 		= ligCol / (ligDis*ligDis);						//radiance
+	vec3	rad 		= pLig.ligCol / (ligDis*ligDis);						//radiance
 	vec3	tanLigDir 	= normalize(jit_in.transTBN * ligMinPos);	//light pos in tangent space
 	bool	compute 	= rad.x+rad.y+rad.z > 0.05;
-	return  compute ? 	shadow(tanLigDir, tanN, uv, height) * 
-						getRadiance(V, N, L, rad, pos, alb, rou, met) :
+	return  compute ? 	shadow(tanLigDir, geom.tanN, geom.uv, mate.height) * 
+						getRadiance(geom.V, geom.N, L, rad, geom.pos, mate.alb, mate.rou, mate.met) :
 						vec3(0.); //get radiance for this light
 }	
-vec3	directionalLight(	vec3 ligDir, vec3 ligCol, vec3 V, vec3 N, vec3 tanN, vec3 pos, vec2 uv, float height, vec3 alb, float rou, float met){
+vec3	getDirectionalLight(in directionalLight dLig, in material mate, in geometry geom){
 	
-	vec3	tanLigDir 	= normalize(jit_in.transTBN * ligDir);	//light pos in tangent space
-	return  shadow(tanLigDir, tanN, uv, height) * 
-			getRadiance(V, N, ligDir, ligCol, pos, alb, rou, met); //get radiance for this light
-}		
-vec3 ACES(vec3 x){	
+	vec3	tanLigDir 	= normalize(jit_in.transTBN * dLig.ligDir);	//light pos in tangent space
+	return  shadow(tanLigDir, geom.tanN, geom.uv, mate.height) * 
+			getRadiance(geom.V, geom.N, dLig.ligDir, dLig.ligCol, geom.pos, mate.alb, mate.rou, mate.met); //get radiance for this light
+}	
+vec3  	getIBL(in material mate, in geometry geom){
+
+	vec3 	F0 	= vec3(0.02); 						//dialettric F0
+			F0 	= mix(F0, mate.alb, vec3(mate.met));			//use alb as F0 if metallic
+	float	NdotV = max(dot(geom.N, geom.V), 0.);
+	vec3 	kS = fresnelSchlickRoughness(NdotV, F0, mate.rou);
+	vec3 	kD = vec3(1.) - kS;
+			kD *= 1. - mate.met;
+	vec3 	irradiance = texture(irradianceTex, geom.N).rgb;
+	vec3	diffuse = irradiance * mate.alb * kD;
+
+	float 	lod             	= mate.rou*6.;
+	vec3	ref 				= reflect(-geom.V, geom.N);
+	vec3 	prefilteredColor 	= texture(equirectTex, dir2uv(ref), lod).rgb;
+	vec2 	envBRDF          	= texture(integMap, vec2(NdotV, mate.rou)).xy;
+ 	vec3 	specular 			= prefilteredColor * (kS * envBRDF.x + envBRDF.y); 
+
+	return 	(diffuse + specular) * mate.occ; 
+}	
+vec3 	ACES(vec3 x){	
     float a = 2.51;
     float b = 0.03;
     float c = 2.43;
@@ -361,7 +412,10 @@ vec3 ACES(vec3 x){
     float e = 0.14;
     return saturate3((x*(a*x+b))/(x*(c*x+d)+e));
 }
-void main() {
+void 	main() {
+
+	material mate;
+	geometry geom;
 
 	//prepare parallax mapping
 	vec3	tanV 		= normalize(jit_in.transTBN * (eye - jit_in.pos));		//tangent view direction
@@ -373,75 +427,59 @@ void main() {
 
 	bool	triplanarTexturing = triplanarUV == 1.;
 
-	vec3 	alb = 	triplanarTexturing ? triplanarAlb(albedoTex).rgb 	: sRGB2lin(texture(albedoTex, uv).rgb);	//albedo color	
-	vec4	RMOH = 	triplanarTexturing ? triplanar(RMOHTex) 			: texture(RMOHTex, uv);			//roughness
-	float	rou = 	RMOH.r;			//roughness
-	float	met = 	RMOH.g;			//metallic
-	float	occ = 	RMOH.b;			//ambient occlusion
+	vec4	RMOH 		= triplanarTexturing ? triplanar(RMOHTex) 			: texture(RMOHTex, uv);	
+			mate.alb 	= triplanarTexturing ? triplanarAlb(albedoTex).rgb 	: sRGB2lin(texture(albedoTex, uv).rgb);	
+			mate.rou 	= RMOH.r;	//roughness
+			mate.met 	= RMOH.g;	//metallic
+			mate.occ 	= RMOH.b;	//ambient occlusion
+			mate.height = height;
 
-	vec3	V 		= normalize(eye - jit_in.pos);				//view direction
-	vec3	tanN 	= triplanarTexturing ? triplanar(normalTex).rgb : texture(normalTex, uv).rgb; 			//normals
-			tanN 	*= 2.;
-			tanN 	-= 1.;
-			tanN 	= normalize(tanN);
-	vec3	N 		= normalize(jit_in.TBN * tanN);
+			geom.V 		= normalize(eye - jit_in.pos);				//view direction
+			geom.tanN 	= normalize( (triplanarTexturing ? triplanar(normalTex) : texture(normalTex, uv) ).rgb*2. - 1.);
+			geom.N 		= normalize(jit_in.TBN * geom.tanN);
+			geom.pos 	= jit_in.pos;
+			geom.uv 	= uv;
 
-	vec3	radiance = vec3(0.);								//initialize the out color to 0
 
 	//lighting
+	vec3	radiance = vec3(0.);								//initialize the out color to 0
+
+	pointLight 			pLig;
+	directionalLight 	dLig;
+
 	{
-		vec3	lig 		= vec3(1., 3., 0.);					//light position
-		vec3	ligCol 		= vec3(1.)*9.;
-				radiance 	+= pointLight(lig, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+		pLig.ligPos	= vec3(1., 3., 0.);					//light position
+		pLig.ligCol = vec3(1.)*9.;
+		radiance 	+= getPointLight(pLig, mate, geom);
 	}
 	{
-		vec3	lig 		= vec3(-2., 1., -1.);				//light position
-		vec3	ligCol 		= vec3(0.8, 0.5, 0.1)*9.;
-				radiance 	+= pointLight(lig, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+		pLig.ligPos	= vec3(-2., 1., -1.);				//light position
+		pLig.ligCol = vec3(0.8, 0.5, 0.1)*9.;
+		radiance 	+= getPointLight(pLig, mate, geom);
 	}
 	{
-		vec3	lig 		= vec3(2., -1., 1.);				//light position
-		vec3	ligCol 		= vec3(0.1, 0.5, 0.9)*9.;
-				radiance 	+= pointLight(lig, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+		pLig.ligPos	= vec3(2., -1., 1.);				//light position
+		pLig.ligCol = vec3(0.1, 0.5, 0.9)*9.;
+		radiance 	+= getPointLight(pLig, mate, geom);
 	}
 	{
-		vec3	lig 		= vec3(-2., -1., -2.);				//light position
-		vec3	ligCol 		= vec3(1.)*9.;	
-				radiance 	+= pointLight(lig, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+		pLig.ligPos	= vec3(-2., -1., -2.);				//light position
+		pLig.ligCol = vec3(1.)*9.;	
+		radiance 	+= getPointLight(pLig, mate, geom);
 	}
 	{
-		vec3	ligDir 		= normalize(vec3(0., 1., 0.));		//light direction
-		vec3	ligCol 		= vec3(1.)*9.;	
-				radiance 	+= directionalLight(ligDir, ligCol, V, N, tanN, jit_in.pos, uv, height, alb, rou, met);
+		dLig.ligDir = normalize(vec3(0., 1., 0.));		//light direction
+		dLig.ligCol = vec3(1.)*9.;	
+		radiance 	+= getDirectionalLight(dLig, mate, geom);
 	}
 
-	vec3 	F0 	= vec3(0.02); 						//dialettric F0
-			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
-	float	NdotV = max(dot(N, V), 0.);
-	vec3 	kS = fresnelSchlickRoughness(NdotV, F0, rou);
-	vec3 	kD = vec3(1.) - kS;
-			kD *= 1. - met;
-	vec3 	irradiance = texture(irradianceTex, N).rgb;
-	vec3	diffuse = irradiance * alb * kD;
+ 	col.rgb = radiance + getIBL(mate, geom); //put this one back!!!!
 
-	float 	lod             	= rou*6.;
-	vec3	ref 				= reflect(-V, N);
-	vec3 	prefilteredColor 	= texture(equirectTex, dir2uv(ref), lod).rgb;
-	vec2 	envBRDF          	= texture(integMap, vec2(NdotV, rou)).xy;
- 	vec3 	specular 			= prefilteredColor * (kS * envBRDF.x + envBRDF.y); 
-
-	vec3 	ambient = (diffuse + specular) * occ; 
-
- 			col.rgb = radiance + ambient; //put this one back!!!!
- 			//col.rgb = specular;
- 			//col.rgb = radiance;
- 			//col.rgb = irradiance;
-
- 			//gamma corrections
-			col.rgb /= col.rgb + vec3(1.); 		//from HDI lo LDI
-			//lin = ACES(lin);
-			col.rgb = lin2sRGB(col.rgb);	//gamma correction
-			col.a = 1.;
+ 	//gamma corrections
+	col.rgb /= col.rgb + vec3(1.); 		//from HDI lo LDI
+	//lin = ACES(lin);
+	col.rgb = lin2sRGB(col.rgb);	//gamma correction
+	col.a = 1.;
 
 }	
 ]]>
