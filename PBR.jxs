@@ -25,8 +25,10 @@
 	<param name="triplanarExp"  		type="float" default="12." />
 	<param name="triplanarTexRepeat" 	type="vec2" default="0.5 0.5" />
 	<param name="parallaxMapping"  		type="float" default="1." />
+	<param name="parallaxIterations" 	type="vec2"  default="50. 100." />
 	<param name="selfShadowing"   		type="float" default="1." />
 	<param name="shadowAmount"  		type="float" default="15." />
+	<param name="shadowIterations" 		type="vec2"  default="50. 100." />
 
 	<language name="glsl" version="1.5">
 		<bind param="pos" 	program="vp" />
@@ -53,8 +55,10 @@
 		<bind param="triplanarExp"			program="fp" />
 		<bind param="triplanarTexRepeat" 	program="fp" />
 		<bind param="parallaxMapping"  		program="fp" />
+		<bind param="parallaxIterations"   	program="fp" />
 		<bind param="selfShadowing"   		program="fp" />
 		<bind param="shadowAmount"  		program="fp" />
+		<bind param="shadowIterations"   	program="fp" />
 
 		<program name="vp" type="vertex">
 <![CDATA[
@@ -106,7 +110,7 @@ uniform vec3 eye;
 uniform sampler2D albedoTex, normalTex, RMOHTex, equirectTex, integMap;
 uniform samplerCube irradianceTex;
 uniform float heightScale, triplanarUV, triplanarExp, parallaxMapping, selfShadowing, shadowAmount;
-uniform vec2 triplanarTexRepeat;
+uniform vec2 triplanarTexRepeat, parallaxIterations, shadowIterations;
 
 in jit_PerVertex {
 	smooth 	vec3 nor;
@@ -240,9 +244,7 @@ void 	parallax(inout material mate, inout geometry geom){
 	V.x *= uvRatio;
 
    	// determine optimal number of layers
-   	const float minLayers = 400;
-   	const float maxLayers = 400;
-   	float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
+   	float numLayers = mix(parallaxIterations.x, parallaxIterations.y, abs(dot(vec3(0, 0, 1), V)));
 
    	// height of each layer
    	float layerHeight = 1.0 / numLayers;
@@ -315,13 +317,10 @@ float 	shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
    float NdotL = dot(N, L);
    if(NdotL < 0.0) {return 0.;}
 
-   const float minLayers = 300;
-   const float maxLayers = 300;
-
     // calculate initial parameters
     float numSamplesUnderSurface = 0.;
     float shadowMultiplier = 0.;
-    float numLayers = mix(maxLayers, minLayers, abs(NdotL));
+    float numLayers = mix(shadowIterations.x, shadowIterations.y, abs(NdotL));
     float layerHeight = initialHeight / numLayers;
     vec2 texStep = heightScale * L.xy / L.z / numLayers;
 
