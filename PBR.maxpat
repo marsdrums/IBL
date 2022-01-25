@@ -40,6 +40,17 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-112",
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 531.650000000000546, 331.0, 77.0, 20.0 ],
+					"text" : "shape/model"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-107",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
@@ -57,7 +68,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 571.150000000000659, 263.0, 70.0, 22.0 ],
+					"patching_rect" : [ 504.75, 294.0, 70.0, 22.0 ],
 					"text" : "loadmess 0"
 				}
 
@@ -70,7 +81,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "int" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 532.0, 282.0, 24.0, 24.0 ]
+					"patching_rect" : [ 504.75, 331.0, 24.0, 24.0 ]
 				}
 
 			}
@@ -81,7 +92,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "int" ],
-					"patching_rect" : [ 538.0, 320.0, 29.5, 22.0 ],
+					"patching_rect" : [ 331.5, 275.0, 29.5, 22.0 ],
 					"text" : "!- 1"
 				}
 
@@ -152,11 +163,12 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-25",
+					"linecount" : 4,
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 401.916666666666629, 235.0, 313.0, 22.0 ],
+					"patching_rect" : [ 401.75, 232.0, 101.0, 64.0 ],
 					"text" : "jit.gl.model @matrixoutput 1 @automatic 0 @normalize 1"
 				}
 
@@ -2482,7 +2494,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-39", 0 ],
-					"order" : 1,
+					"order" : 0,
 					"source" : [ "obj-105", 0 ]
 				}
 
@@ -2490,7 +2502,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-41", 0 ],
-					"order" : 0,
+					"order" : 1,
 					"source" : [ "obj-105", 0 ]
 				}
 
