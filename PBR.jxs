@@ -20,12 +20,12 @@
 	<texture file="ibl_brdf_lut.png" type="float16" unit="5" rectangle="0" filter="none none" wrap="repeat repeat"/>
 
 	<param name="texRepeat" 			type="vec2" default="1. 1." />
-	<param name="heightScale"			type="float" default="0.08" />
+	<param name="heightScale"			type="float" default="0.002" />
 	<param name="triplanarUV"   		type="float" default="0." />
 	<param name="triplanarExp"  		type="float" default="12." />
 	<param name="triplanarTexRepeat" 	type="vec2" default="0.5 0.5" />
-	<param name="parallaxMapping"  		type="float" default="0." />
-	<param name="selfShadowing"   		type="float" default="0." />
+	<param name="parallaxMapping"  		type="float" default="1." />
+	<param name="selfShadowing"   		type="float" default="1." />
 	<param name="shadowAmount"  		type="float" default="15." />
 
 	<language name="glsl" version="1.5">
@@ -159,6 +159,14 @@ vec2 	dir2uv(vec3 v){
     uv += 0.5;
     return uv;
 }
+vec3 	ACES(vec3 x){	
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return saturate3((x*(a*x+b))/(x*(c*x+d)+e));
+}
 
 //triplanar mapping
 vec4 	triplanar(sampler2D tex){
@@ -199,7 +207,31 @@ vec4 	triplanarAlb(sampler2D tex){
 			Z *= k.z;
 	return 	(X+Y+Z)/(k.x+k.y+k.z);
 }
+
 //Parallax mapping
+/*
+void 	parallax(inout material mate, inout geometry geom){
+
+	vec3 V 	= normalize(jit_in.transTBN * (eye - jit_in.pos));		//tangent view direction
+	V.x *= jit_in.texRepeat.x / jit_in.texRepeat.y; 
+   	float dist = 1;
+   	float currDist = 0;
+   	vec2 rd = -heightScale * V.xy / V.z;
+   	vec2 ro = geom.uv;
+   	int count = 0;
+
+   	while(abs(dist) > 0.005 && count < 30){
+   		dist = 1. - texture(RMOHTex, ro + rd*currDist).w;
+   		currDist += dist;
+   		count += 1;
+   	}
+
+   	geom.uv += rd*currDist;
+   	mate.height = dist;
+   	if(geom.uv.x > jit_in.texRepeat.x || geom.uv.y > jit_in.texRepeat.y || geom.uv.x < 0.0 || geom.uv.y < 0.0){discard; }
+}
+*/
+
 void 	parallax(inout material mate, inout geometry geom){
 
 	vec3	V 	= normalize(jit_in.transTBN * (eye - jit_in.pos));		//tangent view direction
@@ -208,8 +240,8 @@ void 	parallax(inout material mate, inout geometry geom){
 	V.x *= uvRatio;
 
    	// determine optimal number of layers
-   	const float minLayers = 300;
-   	const float maxLayers = 300;
+   	const float minLayers = 400;
+   	const float maxLayers = 400;
    	float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
 
    	// height of each layer
@@ -250,24 +282,41 @@ void 	parallax(inout material mate, inout geometry geom){
    	float weight = nextH / (nextH - prevH);
 
    	// interpolation of texture coordinates
-   	vec2 finalTexCoords = prevTCoords * weight + currentTextureCoords * (1.0-weight);
-
-   	// interpolation of depth values
-   	// curLayerHeight + prevH * weight + nextH * (1.0 - weight);
-
-   	// return result
-   	geom.uv = finalTexCoords;
+   	geom.uv = mix(currentTextureCoords, prevTCoords, vec2(weight));
    	mate.height = curLayerHeight + mix(nextH, prevH, weight);
    	if(geom.uv.x > jit_in.texRepeat.x || geom.uv.y > jit_in.texRepeat.y || geom.uv.x < 0.0 || geom.uv.y < 0.0){discard; }
 }
+
+/*
+float 	shadow(vec3 L, vec3 N, vec2 initialTexCoord, float height){
+
+//float shadow( in vec3 ro, in vec3 rd, float mint, float maxt )
+
+	vec2 rd = -heightScale * L.xy / L.z;
+	vec2 ro = initialTexCoord;
+	float res = 1.0;
+	const float k = 100.;
+    for( float t=0.05; t<1.0; )
+    {
+        float h = 1. - texture(RMOHTex, ro + rd*t).w;
+        if( h<0.001 )
+            return 0.0;
+        res = min( res, k*h/t );
+        t += h;
+    }
+    return res;
+
+}
+*/
+
 float 	shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
 
    // calculate lighting only for surface oriented to the light source
    float NdotL = dot(N, L);
    if(NdotL < 0.0) {return 0.;}
 
-   const float minLayers = 200;
-   const float maxLayers = 200;
+   const float minLayers = 300;
+   const float maxLayers = 300;
 
     // calculate initial parameters
     float numSamplesUnderSurface = 0.;
@@ -308,6 +357,7 @@ float 	shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
     return (numSamplesUnderSurface <= 1.) ? 1. : 1. - saturate(shadowMultiplier);
     //return abs(NdotL);
 }
+
 //PBR functions
 vec3 	fresnelSchlickRoughness(float HdotV, vec3 F0, float rou){
 	float 	x = saturate(1. - HdotV); //x^5
@@ -363,7 +413,9 @@ vec3 	getRadiance(vec3 V, vec3 N, vec3 L, vec3 rad, vec3 pos, vec3 alb, float ro
 			kD *= 1.0 - met;		//nullify k diffuse if metallic
 
 	return 	(kD * alb / PI + spe) * rad * NdotL;
-}		
+}
+
+//lighting functions		
 vec3	getPointLight(in light lig, in material mate, in geometry geom){
 		
 	vec3	ligMinPos 	= lig.ligPos - geom.pos;
@@ -409,14 +461,7 @@ vec3  	getIBL(in material mate, in geometry geom){
 
 	return 	(diffuse + specular) * mate.occ; 
 }
-vec3 	ACES(vec3 x){	
-    float a = 2.51;
-    float b = 0.03;
-    float c = 2.43;
-    float d = 0.59;
-    float e = 0.14;
-    return saturate3((x*(a*x+b))/(x*(c*x+d)+e));
-}
+
 void 	main() {
 
 	material 	mate;
@@ -440,7 +485,7 @@ void 	main() {
 			geom.V 		= normalize(eye - jit_in.pos);				//view direction
 			geom.tanN 	= normalize( (triplanarTexturing ? triplanar(normalTex) : texture(normalTex, geom.uv) ).rgb*2. - 1.);
 			geom.N 		= normalize(jit_in.TBN * geom.tanN);
-			geom.pos    += geom.N * mate.height*heightScale;
+			geom.pos    += geom.N * (1. - mate.height) * heightScale;
 
 	//lighting
 	vec3	radiance = vec3(0.); //initialize the out color 
@@ -478,9 +523,8 @@ void 	main() {
 		lig.cutoffOuter = -0.5;
 		radiance 	+= getSpotLight(lig, mate, geom);
 	}
+
  	col.rgb = radiance + getIBL(mate, geom); //put this one back!!!!
- 	//col.rgb = getIBL(mate, geom);
- 	//col.rgb = radiance;
 
  	//gamma corrections
 	col.rgb /= col.rgb + vec3(1.);  //from HDI lo LDI

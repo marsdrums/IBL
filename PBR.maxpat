@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 1386.0, 201.0, 1374.0, 1280.0 ],
+		"rect" : [ 1314.0, 85.0, 882.0, 1289.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -39,6 +39,18 @@
 		"subpatcher_template" : "",
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
+				"box" : 				{
+					"id" : "obj-14",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "jit_matrix", "" ],
+					"patching_rect" : [ 120.25, 1237.855670103092734, 587.0, 22.0 ],
+					"text" : "jit.gl.gridshape @shape sphere @scale 0.05 0.05 0.05 @dim 15 15 @gl_color 1. 0.1 0.2 1. @position 0. 2. 0."
+				}
+
+			}
+, 			{
 				"box" : 				{
 					"id" : "obj-27",
 					"maxclass" : "newobj",
@@ -71,7 +83,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 1001.950000000002092, 412.0, 108.0, 22.0 ],
-					"presentation_linecount" : 2,
 					"text" : "shadowAmount $1"
 				}
 
@@ -96,7 +107,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 876.950000000002092, 412.0, 103.0, 22.0 ],
-					"presentation_linecount" : 2,
 					"text" : "selfShadowing $1"
 				}
 
@@ -121,7 +131,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 876.950000000002092, 355.0, 113.0, 22.0 ],
-					"presentation_linecount" : 2,
 					"text" : "parallaxMapping $1"
 				}
 
@@ -1393,18 +1402,6 @@
 			}
 , 			{
 				"box" : 				{
-					"id" : "obj-54",
-					"linecount" : 4,
-					"maxclass" : "comment",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 835.0, 66.0, 216.0, 62.0 ],
-					"text" : "things to do:\nfix the parallax mapping\ncontrol the irradiance map generator\nadd specular IBL"
-				}
-
-			}
-, 			{
-				"box" : 				{
 					"format" : 6,
 					"id" : "obj-28",
 					"maxclass" : "flonum",
@@ -1412,7 +1409,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 731.950000000002092, 255.0, 50.0, 22.0 ]
+					"patching_rect" : [ 731.950000000002092, 255.0, 107.0, 22.0 ]
 				}
 
 			}
