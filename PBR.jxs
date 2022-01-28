@@ -105,6 +105,7 @@ void main() {
 <![CDATA[
 #version 330 core
 #define PI 3.14159265
+#define TWOPI 6.28318531
 
 uniform vec3 eye;
 uniform sampler2D albedoTex, normalTex, RMOHTex, equirectTex, integMap;
@@ -137,6 +138,7 @@ struct 	material{
 struct 	geometry{
 	vec3	V;
 	vec3	N;
+	vec3 	R;
 	vec3	tanN;
 	vec3	pos;
 	vec2	uv;
@@ -148,6 +150,12 @@ struct light{
 	vec3  	ligDir;
 	float  	cutoffInner;
 	float  	cutoffOuter;
+	vec3 	right, up;
+	float 	width, height;
+	float 	halfWidth, halfHeight;
+	vec3 	p0, p1, p2, p3;
+	vec3 	p0_P, p1_P, p2_P, p3_P, pos_P;
+	bool 	twoSided;
 };
 
 out vec4 col;
@@ -420,7 +428,7 @@ vec3	getPointLight(in light lig, in material mate, in geometry geom){
 	vec3	ligMinPos 	= lig.ligPos - geom.pos;
 	float	ligDis 		= length(ligMinPos);	
 	vec3	L 			= ligMinPos/ligDis;				//light direction
-	vec3	rad 		= lig.ligCol / (ligDis*ligDis);						//radiance
+	vec3	rad 		= lig.ligCol / (1. + ligDis*ligDis);						//radiance
 	vec3	tanLigDir 	= normalize(jit_in.transTBN * ligMinPos);	//light pos in tangent space
 	bool	compute 	= rad.x+rad.y+rad.z > 0.05;
 	return  compute ? 	( selfShadowing == 1. ? shadow(tanLigDir, geom.tanN, geom.uv, mate.height) : 1.) * 
@@ -461,6 +469,118 @@ vec3  	getIBL(in material mate, in geometry geom){
 	return 	(diffuse + specular) * mate.occ; 
 }
 
+//area light functions
+void getLigthParams(inout light lig, vec3 P){
+			lig.right 		= cross(lig.ligDir, vec3(0., 1., 0.));
+			lig.up 			= cross(lig.right, lig.ligDir);
+			lig.halfWidth 	= lig.width*0.5;
+			lig.halfHeight 	= lig.height*0.5;
+	vec3 	right 			= lig.right * lig.halfWidth;
+	vec3 	up 				= lig.up 	* lig.halfHeight; 
+   			lig.p0 			= lig.ligPos + right + up;
+   			lig.p1 			= lig.ligPos - right + up;
+   			lig.p2 			= lig.ligPos - right - up;
+   			lig.p3 			= lig.ligPos + right - up;
+   			lig.p0_P 		= lig.p0 - P;
+   			lig.p1_P 		= lig.p1 - P;
+   			lig.p2_P 		= lig.p2 - P;
+   			lig.p3_P 		= lig.p3 - P;
+   			lig.pos_P 		= lig.ligPos - P;
+}
+float rectSolidAngle(in light lig){
+
+   	vec3 	n0 = normalize(cross(lig.p0_P, lig.p1_P));
+   	vec3 	n1 = normalize(cross(lig.p1_P, lig.p2_P));
+   	vec3 	n2 = normalize(cross(lig.p2_P, lig.p3_P));
+   	vec3 	n3 = normalize(cross(lig.p3_P, lig.p0_P));
+    
+   	float 	g0 = acos(dot(-n0, n1));
+	float 	g1 = acos(dot(-n1, n2));
+	float 	g2 = acos(dot(-n2, n3));
+	float 	g3 = acos(dot(-n3, n0));
+    
+   return 	g0 + g1 + g2 + g3 - TWOPI;
+}
+vec3 rayPlaneIntersect(vec3 ro, vec3 rd, light lig){
+
+   return ro + rd*(dot(lig.ligDir, lig.ligPos - ro) / dot(lig.ligDir, rd));
+}
+vec3 getRadianceDif(vec3 V, vec3 N, vec3 L, vec3 alb, float rou, float met){
+
+	vec3	H = normalize(V + L);					//half vector
+	//compute dot products
+	float	HdotV = saturate(dot(H, V));
+	float 	NdotL = saturate(dot(N, L));
+
+	vec3 	F0 	= vec3(0.04); 						//dialettric F0
+			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
+	vec3 	F  	= fresnelSchlickRoughness(HdotV, F0, rou); 		//compute fresnel
+	vec3 	kS = F;					//k specular
+	vec3 	kD = vec3(1.0) - kS;	//k diffuse
+			kD *= 1.0 - met;		//nullify k diffuse if metallic
+	return 	(kD * alb / PI) * NdotL;
+}
+vec3 getRadianceSpe(vec3 V, vec3 N, vec3 L, vec3 alb, float rou, float met){
+
+	vec3	H = normalize(V + L);					//half vector
+
+	//compute dot products
+	float	HdotV = saturate(dot(H, V));
+    float 	NdotV = saturate(dot(N, V)) + 0.001; //avoid dividing by 0
+    float 	NdotL = saturate(dot(N, L));
+    float   NdotH = saturate(dot(N, H));
+
+	vec3 	F0 	= vec3(0.04); 						//dialettric F0
+			F0 	= mix(F0, alb, vec3(met));			//use alb as F0 if metallic
+	vec3 	F  	= fresnelSchlickRoughness(HdotV, F0, rou); 		//compute fresnel
+	float	NDF = DistributionGGX(NdotH, rou);   	//compute NDF term
+	float 	G   = GeometrySmith(NdotV, NdotL, rou); //compute G term   
+	vec3 	spe = (NDF*G*F)/(4.*NdotV*NdotL+0.0001);  
+
+	return 	spe * NdotL;
+}
+vec3 getSpeMRP(vec3 P, vec3 N, vec3 R, in light lig){
+
+    // calculate point on the rectangle surface/edge based on the ray originating from the shaded point
+   vec3 		planePointCenter 	= rayPlaneIntersect(P, R, lig);
+    // project point on the plane on which the rectangle lies
+    			planePointCenter -= lig.ligPos;
+   vec2 		planePointProj 	= vec2(dot(planePointCenter, lig.right), dot(planePointCenter, lig.up));
+    			planePointProj.x 	= clamp(planePointProj.x, -lig.halfWidth, lig.halfWidth);
+    			planePointProj.y 	= clamp(planePointProj.y, -lig.halfHeight, lig.halfHeight);
+   //vec2		uv 					= planePointProj/vec2(ligWidth, ligHeight) + 0.5;
+   // 			uv.x 				= 1. - uv.x;
+   return 		lig.ligPos + lig.right*planePointProj.x + lig.up*planePointProj.y; 
+
+}
+vec3 getRectLight(in light lig, in material mate, in geometry geom){
+
+	//check shadertoy https://www.shadertoy.com/view/wlSfW1 because the lighting for the rectangle isn't convincing me...
+
+	getLigthParams(lig, geom.pos);
+
+   	bool 	windingCheck = lig.twoSided ? true : dot(lig.ligDir, lig.pos_P) < 0.;
+
+   	//add the diffuse component
+   	vec3 	dif = vec3(0.);
+   			dif += windingCheck ? getRadianceDif(geom.V, geom.N, normalize(lig.p0_P), 	mate.alb, mate.rou, mate.met) : vec3(0.);
+   			dif += windingCheck ? getRadianceDif(geom.V, geom.N, normalize(lig.p1_P), 	mate.alb, mate.rou, mate.met) : vec3(0.);
+   			dif += windingCheck ? getRadianceDif(geom.V, geom.N, normalize(lig.p2_P), 	mate.alb, mate.rou, mate.met) : vec3(0.);
+   			dif += windingCheck ? getRadianceDif(geom.V, geom.N, normalize(lig.p3_P), 	mate.alb, mate.rou, mate.met) : vec3(0.);
+   			dif += windingCheck ? getRadianceDif(geom.V, geom.N, normalize(lig.pos_P), 	mate.alb, mate.rou, mate.met) : vec3(0.);
+   			dif *= 0.2;
+   			dif *= rectSolidAngle(lig);
+   			dif *= lig.ligCol;
+
+   	//add the specular component
+	vec3 	speMRP = getSpeMRP(geom.pos, geom.N, geom.R, lig);
+	vec3	spe = windingCheck ? getRadianceSpe(geom.V, geom.N, normalize(speMRP - geom.pos), mate.alb, mate.rou, mate.met) : vec3(0.);
+			spe *= lig.ligCol;
+	float 	dis = length(speMRP - geom.pos);
+			spe /= dis*dis;
+
+	return 	dif + spe;
+}
 void 	main() {
 
 	material 	mate;
@@ -481,9 +601,10 @@ void 	main() {
 			mate.met 	= RMOH.g;	//metallic
 			mate.occ 	= RMOH.b;	//ambient occlusion
 
-			geom.V 		= normalize(eye - jit_in.pos);				//view direction
-			geom.tanN 	= normalize( (triplanarTexturing ? triplanar(normalTex) : texture(normalTex, geom.uv) ).rgb*2. - 1.);
+			geom.V 		= normalize(eye - jit_in.pos);	//view direction
+			geom.tanN 	= normalize((triplanarTexturing ? triplanar(normalTex) : texture(normalTex, geom.uv) ).rgb*2. - 1.);
 			geom.N 		= normalize(jit_in.TBN * geom.tanN);
+			geom.R 		= reflect(geom.V, geom.N);
 			geom.pos    += geom.N * (1. - mate.height) * heightScale;
 
 	//lighting
@@ -522,7 +643,17 @@ void 	main() {
 		lig.cutoffOuter = -0.5;
 		radiance 	+= getSpotLight(lig, mate, geom);
 	}
-
+	/*
+	{
+		lig.ligPos = vec3(0., 0., 0.);
+		lig.ligDir = vec3(0., 0., -1.);
+		lig.ligCol = vec3(1.)*1.;
+		lig.width = 2.;
+		lig.height = 1.;
+		lig.twoSided = false;
+		radiance 	+= getRectLight(lig, mate, geom);
+	}
+*/
  	col.rgb = radiance + getIBL(mate, geom); //put this one back!!!!
 
  	//gamma corrections
