@@ -106,6 +106,9 @@ void main() {
 #version 330 core
 #define PI 3.14159265
 #define TWOPI 6.28318531
+#define PI_INV 0.3183098861
+#define RECT_LIGHT_RADIUS 4.0 //controlla cosa rappresenta questo parametro
+#define RECT_LIGHT_INTENSITY 64.0 //controlla cosa rappresenta questo parametro
 
 uniform vec3 eye;
 uniform sampler2D albedoTex, normalTex, RMOHTex, equirectTex, integMap;
@@ -470,101 +473,137 @@ vec3  	getIBL(in material mate, in geometry geom){
 }
 
 //area light functions
-vec3 rayPlaneIntersect (in vec3 ro , in vec3 rd ,
-						in vec3 planeOrigin , in vec3 planeNormal ){
+void getLigthParams(inout light lig, vec3 P){
 
- 	return 	ro + rd * dot ( planeNormal , planeOrigin - ro ) /
- 			dot ( planeNormal , rd );
- }
-
- // Return the closest point to a rectangular shape defined by two vectors
- // left and up
-vec3 closestPointRect (	in vec3 pos , in vec3 planeOrigin , in vec3 left , in vec3 up , 
-						in float halfWidth , in float halfHeight ){
- 
- 	vec3 	dir = pos - planeOrigin ;
-
- // - Project in 2D plane ( forward is the light direction away from
- // the plane )
- // - Clamp inside the rectangle
- // - Calculate new world position
- 	vec2 	dist2D = vec2 (dot ( dir , left ) , dot ( dir , up ));
- 	vec2 	rectHalfSize = vec2( halfWidth , halfHeight ) ;
- 			dist2D = clamp ( dist2D , - rectHalfSize , rectHalfSize );
- 	return 	planeOrigin + dist2D.x * left + dist2D.y * up ;
- }
-
-
-float rectangleSolidAngle ( vec3 worldPos , vec3 p0 , vec3 p1 , vec3 p2 , vec3 p3 ){
-	vec3 v0 = p0 - worldPos ;
-	vec3 v1 = p1 - worldPos ;
-	vec3 v2 = p2 - worldPos ;
-	vec3 v3 = p3 - worldPos ;
-	vec3 n0 = normalize ( cross (v0 , v1 ));
-	vec3 n1 = normalize ( cross (v1 , v2 ));
-	vec3 n2 = normalize ( cross (v2 , v3 ));
-	vec3 n3 = normalize ( cross (v3 , v0 ));
-	float g0 = acos ( dot (-n0 , n1 ));
-	float g1 = acos ( dot (-n1 , n2 ));
-	float g2 = acos ( dot (-n2 , n3 ));
-	float g3 = acos ( dot (-n3 , n0 ));
-	return g0 + g1 + g2 + g3 - TWOPI ;
+	lig.right 		= cross(lig.ligDir, vec3(0., 1., 0.));
+	lig.up 			= cross(lig.right, lig.ligDir);
+	lig.halfWidth 	= lig.width  * 0.5;
+	lig.halfHeight 	= lig.height * 0.5;
+    lig.p0 			= lig.ligPos + lig.halfWidth * lig.right + lig.halfHeight * lig.up;
+    lig.p1 			= lig.ligPos - lig.halfWidth * lig.right + lig.halfHeight * lig.up;
+    lig.p2 			= lig.ligPos - lig.halfWidth * lig.right - lig.halfHeight * lig.up;
+    lig.p3 			= lig.ligPos + lig.halfWidth * lig.right - lig.halfHeight * lig.up;
+   	lig.p0_P 		= lig.p0 - P;
+   	lig.p1_P 		= lig.p1 - P;
+   	lig.p2_P 		= lig.p2 - P;
+   	lig.p3_P 		= lig.p3 - P;
+   	lig.pos_P 		= lig.ligPos - P;
+}
+// Based on the technique in EA's frostbite engine
+float rectSolidAngle(vec3 v0, vec3 v1, vec3 v2, vec3 v3)
+{
+    vec3 n0 = normalize(cross(v0, v1));
+    vec3 n1 = normalize(cross(v1, v2));
+    vec3 n2 = normalize(cross(v2, v3));
+    vec3 n3 = normalize(cross(v3, v0));
+    
+    float g0 = acos(dot(-n0, n1));
+	float g1 = acos(dot(-n1, n2));
+	float g2 = acos(dot(-n2, n3));
+	float g3 = acos(dot(-n3, n0));
+    
+    return g0 + g1 + g2 + g3 - TWOPI; 
+}
+vec3 rayPlaneIntersect(vec3 ro, vec3 rd, vec3 ligDir, vec3 ligPos)
+{
+   return ro + rd * (dot(ligDir, ligPos - ro) / dot(ligDir, rd));
+}
+// Schlick's approximation for Fresnel equation
+vec3 fresnelSchlick(vec3 F0, float dotProd) //controlla se inserire anche la roughness
+{
+    return F0 + (1. - F0) * pow(1. - dotProd, 5.);
+}
+float normalDistributionGGXRect(float NdotH, float alpha, float alphaPrime)
+{
+    float alpha2 = alpha * alpha;
+    float alpha4 = alpha2 * alpha2;
+    float alphaPrime3 = alphaPrime * alphaPrime * alphaPrime;
+    float NdotH2 = NdotH * NdotH;
+    
+    return 
+        			 	(alpha2 * alphaPrime3)
+    	/ /*-------------------------------------------------*/
+        	  	(pow(NdotH2 * (alpha2 - 1.) + 1., 2.));      
 }
 
 vec3 getRectLight(in light lig, in material mate, in geometry geom){
 
-	if ( dot ( geom.pos - lig.ligPos , lig.ligDir ) > 0){
-	 
-	 	float 	clampCosAngle = 0.001 + saturate ( dot ( geom.pos , lig.ligDir ));
-	 // clamp d0 to the positive hemisphere of surface normal
-	 	vec3 	d0 = normalize ( - lig.ligDir + geom.pos * clampCosAngle );
-	 // clamp d1 to the negative hemisphere of light plane normal
-	 	vec3 	d1 = normalize ( geom.N - lig.ligDir * clampCosAngle );
-	 	vec3 	dh = normalize ( d0 + d1 );
-	 	vec3	ph = rayPlaneIntersect ( geom.pos , dh , lig.ligPos , lig.ligDir ) ;
-	 			ph = closestPointRect ( ph , lig.ligPos , lig.right , lig.up , lig.halfWidth , lig.halfHeight );
+ 	//vec4 result = vec4(0.);
+    
+	//getLigthParams(lig, geom.pos);//fill light parameters
+	lig.right 		= cross(lig.ligDir, vec3(0., 1., 0.));
+	lig.up 			= cross(lig.right, lig.ligDir);
+	lig.halfWidth 	= lig.width  * 0.5;
+	lig.halfHeight 	= lig.height * 0.5;
+    lig.p0 			= lig.ligPos + lig.halfWidth * lig.right + lig.halfHeight * lig.up;
+    lig.p1 			= lig.ligPos - lig.halfWidth * lig.right + lig.halfHeight * lig.up;
+    lig.p2 			= lig.ligPos - lig.halfWidth * lig.right - lig.halfHeight * lig.up;
+    lig.p3 			= lig.ligPos + lig.halfWidth * lig.right - lig.halfHeight * lig.up;
+   	lig.p0_P 		= lig.p0 - geom.pos;
+   	lig.p1_P 		= lig.p1 - geom.pos;
+   	lig.p2_P 		= lig.p2 - geom.pos;
+   	lig.p3_P 		= lig.p3 - geom.pos;
+   	lig.pos_P 		= lig.ligPos - geom.pos;
 
-	 	vec3 	p0 = lig.ligPos + lig.right * -lig.halfWidth + lig.up *  lig.halfHeight ;
-	 	vec3 	p1 = lig.ligPos + lig.right * -lig.halfWidth + lig.up * -lig.halfHeight ;
-	 	vec3 	p2 = lig.ligPos + lig.right *  lig.halfWidth + lig.up * -lig.halfHeight ;
-	 	vec3 	p3 = lig.ligPos + lig.right *  lig.halfWidth + lig.up *  lig.halfHeight ;
-	 	float 	solidAngle = rectangleSolidAngle ( geom.pos , p0 , p1 , p2 , p3 );
-	 	//diffuse
-    	float 	dif = solidAngle * 0.2 * (
-        					saturate(dot(normalize(p0 - geom.pos), geom.N)) +
-        					saturate(dot(normalize(p1 - geom.pos), geom.N)) +
-        					saturate(dot(normalize(p2 - geom.pos), geom.N)) +
-        					saturate(dot(normalize(p3 - geom.pos), geom.N)) +
-        					saturate(dot(normalize(lig.ligPos - geom.pos), geom.N))); 	 	
+    // facing side check
+    float windingCheck = dot(cross(lig.right, lig.up), lig.ligPos - geom.pos);
+    if (windingCheck > 0.){return vec3(0.);}
+    
 
+    //vec3 v0 = rect.a - p;
+    //vec3 v1 = rect.b - p;
+    //vec3 v2 = rect.c - p;
+    //vec3 v3 = rect.d - p;
+    
+    float solidAngle = rectSolidAngle(lig.p0_P, lig.p1_P, lig.p2_P, lig.p3_P);
+    
+    // diffuse
+    float dif = solidAngle * 0.2 * (
+        saturate(dot(normalize(lig.p0_P), geom.N)) +
+        saturate(dot(normalize(lig.p0_P), geom.N)) +
+        saturate(dot(normalize(lig.p0_P), geom.N)) +
+        saturate(dot(normalize(lig.p0_P), geom.N)) +
+        saturate(dot(normalize(lig.pos_P), geom.N)));    
+    
+    //attenuation = softShadow(Ray(p + n * EPS, normalize(rect.center)));
+    
+    // specular
+	//Ray rectRay = Ray(p, r);
+    vec3 planePointCenter = rayPlaneIntersect(geom.pos, geom.R, lig.ligDir, lig.ligPos) - lig.ligPos;
+    // project point on the plane on which the rectangle lies
+    vec2 planePointProj = vec2(dot(planePointCenter, lig.right), 
+                               dot(planePointCenter, lig.up));
+    // translate the point to the top-right quadrant of the rectangle, project it on
+    // the rectangle or its edge and translate back using sign of the original point.
+    vec2 c = min(abs(planePointProj), vec2(lig.halfWidth, lig.halfHeight)) * sign(planePointProj);
+    vec3 L = lig.ligPos + lig.right * c.x + lig.up * c.y - geom.pos;
+    
+    vec3 l = normalize(L);
+    vec3 h = normalize(geom.V + l);
+    float lightDist = length(L);
+    
+    float NdotH = max(dot(geom.N, h), 0.);
+    float HdotV = dot(h, geom.V);
+    float NdotV = max(dot(geom.N, geom.V), 0.) + 0.001;
 
-	 			lig.ligPos = ph;
-	 	vec3 	unormLightVector = ph - geom.pos ;
-	 	//float 	sqrDist = dot ( unormLightVector , unormLightVector ) ;
-	 	vec3	L = normalize ( unormLightVector );
-	 	vec3   	H = normalize(L + geom.V);
-	 	float 	ligDist = length(unormLightVector);
-
-	//compute dot products
-	float	HdotV = saturate(dot(H, geom.V));
-    float 	NdotV = saturate(dot(geom.N, geom.V)) + 0.001; //avoid dividing by 0
-    //float 	NdotL = saturate(dot(geom.N, L));
-    float   NdotH = saturate(dot(geom.N, H));
-
-
-	vec3 	F0 	= vec3(0.04); 						//dialettric F0
-			F0 	= mix(F0, mate.alb, vec3(mate.met));			//use alb as F0 if metallic
+    float alpha = mate.rou * mate.rou;
+    float alphaPrime = saturate(alpha + (RECT_LIGHT_RADIUS / (2. * lightDist)));
+    
+	vec3 	F0 	= vec3(0.02); 						//dialettric F0
+			F0 	= mix(F0, mate.alb, vec3(mate.met));
 	vec3 	F  	= fresnelSchlickRoughness(HdotV, F0, mate.rou); 		//compute fresnel
-	float	NDF = DistributionGGX(NdotH, mate.rou);   	//compute NDF term
-	float 	G   = GeometrySmith(NdotV, dif, mate.rou); //compute G term   
-	vec3 	spe = (NDF*G*F)/(4.*NdotV*dif+0.0001);  
+    vec3 	result = 	normalDistributionGGXRect(NdotH, alpha, alphaPrime)
+        			* GeometrySmith(NdotV, dif, mate.rou)
+        			* F;
+        
+    vec3 	rectLightFresnel = vec3(0.);
+    float 	rectLightAttenuation = 1.;
 
-	vec3 	kS = F;					//k specular
-	vec3 	kD = vec3(1.0) - kS;	//k diffuse
-			kD *= 1.0 - mate.met;		//nullify k diffuse if metallic
-
-	return 	(kD * mate.alb / PI + spe) * lig.ligCol * dif;
-	}	
+	vec3 	rectLightKd = vec3(1.) - rectLightFresnel;
+        	rectLightKd *= 1. - mate.met;
+        
+    return 	(rectLightKd * PI_INV * mate.alb + result)
+            * RECT_LIGHT_INTENSITY * dif * rectLightAttenuation;   
 }
 
 void 	main() {
@@ -635,18 +674,19 @@ void 	main() {
 		lig.ligPos = vec3(0., 0., 0.);
 		lig.ligDir = vec3(0., 0., -1.);
 		lig.ligCol = vec3(1.)*0.1;
-		lig.width = 2.;
-		lig.height = 1.;
+		lig.width = 1.;
+		lig.height = 0.6;
 		lig.twoSided = false;
 		radiance 	+= getRectLight(lig, mate, geom);
 	}
 
- 	col.rgb = radiance + getIBL(mate, geom); //put this one back!!!!
+	radiance += getIBL(mate, geom); 
+
 
  	//gamma corrections
-	col.rgb /= col.rgb + vec3(1.);  //from HDI lo LDI
+	radiance /= radiance + vec3(1.);  //from HDI lo LDI
 	//lin = ACES(lin);
-	col.rgb = lin2sRGB(col.rgb);	//gamma correction
+	col.rgb = lin2sRGB(radiance);	//gamma correction
 	col.a = 1.;
 
 }	

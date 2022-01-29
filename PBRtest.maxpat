@@ -71,7 +71,6 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 479.75, 586.855670103092734, 87.0, 22.0 ],
-					"presentation_linecount" : 2,
 					"text" : "setall $1, bang"
 				}
 
@@ -2166,8 +2165,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 256.25, 402.0, 220.0, 22.0 ],
-					"text" : "jit.gl.shader @name PBR @file PBR.jxs"
+					"patching_rect" : [ 256.25, 402.0, 240.0, 22.0 ],
+					"text" : "jit.gl.shader @name PBR @file PBRtest.jxs"
 				}
 
 			}
