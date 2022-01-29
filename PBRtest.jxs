@@ -634,7 +634,7 @@ void 	main() {
 
 	//lighting
 	vec3	radiance = vec3(0.); //initialize the out color 
-/*	
+
 	{
 		lig.ligPos	= vec3(1., 3., 0.);					//light position
 		lig.ligCol = vec3(1.)*9.;
@@ -668,7 +668,7 @@ void 	main() {
 		lig.cutoffOuter = -0.5;
 		radiance 	+= getSpotLight(lig, mate, geom);
 	}
-*/
+
 	
 	{
 		lig.ligPos = vec3(3., 0., 0.);

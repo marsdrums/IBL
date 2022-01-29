@@ -40,6 +40,30 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-110",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "jit_matrix", "" ],
+					"patching_rect" : [ 120.25, 1308.855670103092734, 758.0, 22.0 ],
+					"text" : "jit.gl.gridshape @shape plane @scale 1. 0.5 1. @dim 15 15 @gl_color 0.9 0.4 0.1 @position -3. 0. 0. @rotate -1. 0. 0. 1. @rotatexyz 0. 90. 0."
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-33",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 2,
+					"outlettype" : [ "jit_matrix", "" ],
+					"patching_rect" : [ 120.25, 1281.855670103092734, 750.0, 22.0 ],
+					"text" : "jit.gl.gridshape @shape plane @scale 1. 0.5 1. @dim 15 15 @gl_color 0.1 0.4 0.9 @position 3. 0. 0. @rotate 1. 0. 0. 1. @rotatexyz 0. 90. 0."
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"format" : 6,
 					"id" : "obj-111",
 					"maxclass" : "flonum",
