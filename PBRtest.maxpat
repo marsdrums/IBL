@@ -46,7 +46,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
 					"patching_rect" : [ 120.25, 1308.855670103092734, 758.0, 22.0 ],
-					"text" : "jit.gl.gridshape @shape plane @scale 1. 0.5 1. @dim 15 15 @gl_color 0.9 0.4 0.1 @position -3. 0. 0. @rotate -1. 0. 0. 1. @rotatexyz 0. 90. 0."
+					"text" : "jit.gl.gridshape @shape plane @scale 0.5 1. 1. @dim 15 15 @gl_color 0.9 0.4 0.1 @position -3. 0. 0. @rotate -1. 0. 0. 1. @rotatexyz 0. 90. 0."
 				}
 
 			}
@@ -58,7 +58,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
 					"patching_rect" : [ 120.25, 1281.855670103092734, 750.0, 22.0 ],
-					"text" : "jit.gl.gridshape @shape plane @scale 1. 0.5 1. @dim 15 15 @gl_color 0.1 0.4 0.9 @position 3. 0. 0. @rotate 1. 0. 0. 1. @rotatexyz 0. 90. 0."
+					"text" : "jit.gl.gridshape @shape plane @scale 0.5 1. 1. @dim 15 15 @gl_color 0.1 0.4 0.9 @position 3. 0. 0. @rotate 1. 0. 0. 1. @rotatexyz 0. 90. 0."
 				}
 
 			}
@@ -2533,6 +2533,18 @@
 				}
 
 			}
+, 			{
+				"box" : 				{
+					"attr" : "scale",
+					"id" : "obj-113",
+					"maxclass" : "attrui",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 148.5, 179.0, 201.0, 22.0 ]
+				}
+
+			}
  ],
 		"lines" : [ 			{
 				"patchline" : 				{
@@ -2631,6 +2643,13 @@
 				"patchline" : 				{
 					"destination" : [ "obj-108", 0 ],
 					"source" : [ "obj-111", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-37", 0 ],
+					"source" : [ "obj-113", 0 ]
 				}
 
 			}
