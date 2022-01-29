@@ -603,7 +603,7 @@ vec3 getRectLight(in light lig, in material mate, in geometry geom){
         	rectLightKd *= 1. - mate.met;
         
     return 	(rectLightKd * PI_INV * mate.alb + result)
-            * RECT_LIGHT_INTENSITY * dif * rectLightAttenuation;   
+            * RECT_LIGHT_INTENSITY * dif * rectLightAttenuation * lig.ligCol;   
 }
 
 void 	main() {
@@ -634,7 +634,7 @@ void 	main() {
 
 	//lighting
 	vec3	radiance = vec3(0.); //initialize the out color 
-	/*
+/*	
 	{
 		lig.ligPos	= vec3(1., 3., 0.);					//light position
 		lig.ligCol = vec3(1.)*9.;
@@ -668,12 +668,21 @@ void 	main() {
 		lig.cutoffOuter = -0.5;
 		radiance 	+= getSpotLight(lig, mate, geom);
 	}
-	*/
+*/
 	
 	{
-		lig.ligPos = vec3(0., 0., 0.);
-		lig.ligDir = vec3(0., 0., -1.);
-		lig.ligCol = vec3(1.)*0.1;
+		lig.ligPos = vec3(3., 0., 0.);
+		lig.ligDir = normalize(lig.ligPos);//vec3(0., 0., -1.);
+		lig.ligCol = vec3(0.1, 0.4, 0.7);
+		lig.width = 1.;
+		lig.height = 0.6;
+		lig.twoSided = false;
+		radiance 	+= getRectLight(lig, mate, geom);
+	}
+	{
+		lig.ligPos = vec3(-3., 0., 0.);
+		lig.ligDir = normalize(lig.ligPos);//vec3(0., 0., -1.);
+		lig.ligCol = vec3(0.7, 0.4, 0.1);
 		lig.width = 1.;
 		lig.height = 0.6;
 		lig.twoSided = false;
