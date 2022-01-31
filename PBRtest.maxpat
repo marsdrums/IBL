@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 701.0, 85.0, 1404.0, 1273.0 ],
+		"rect" : [ 34.0, 77.0, 2168.0, 1289.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -130,8 +130,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 112.25, 1467.855670103092734, 758.0, 22.0 ],
-					"text" : "jit.gl.gridshape @shape plane @scale 0.5 1. 1. @dim 15 15 @gl_color 0.9 0.4 0.1 @position -3. 0. 0. @rotate -1. 0. 0. 1. @rotatexyz 0. 90. 0."
+					"patching_rect" : [ 112.25, 1467.855670103092734, 772.0, 22.0 ],
+					"text" : "jit.gl.gridshape @shape plane @scale 0.5 0.5 0.5 @dim 15 15 @gl_color 0.9 0.4 0.1 @position -3. 0. 0. @rotate -1. 0. 0. 1. @rotatexyz 0. 90. 0."
 				}
 
 			}
@@ -142,8 +142,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 112.25, 1440.855670103092734, 750.0, 22.0 ],
-					"text" : "jit.gl.gridshape @shape plane @scale 0.5 1. 1. @dim 15 15 @gl_color 0.1 0.4 0.9 @position 3. 0. 0. @rotate 1. 0. 0. 1. @rotatexyz 0. 90. 0."
+					"patching_rect" : [ 112.25, 1440.855670103092734, 764.0, 22.0 ],
+					"text" : "jit.gl.gridshape @shape plane @scale 0.5 0.5 0.5 @dim 15 15 @gl_color 0.1 0.4 0.9 @position 3. 0. 0. @rotate 1. 0. 0. 1. @rotatexyz 0. 90. 0."
 				}
 
 			}
