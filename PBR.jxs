@@ -3,7 +3,6 @@
 	<param name="pos" 	type="vec3" state="POSITION" />
 	<param name="nor" 	type="vec3" state="NORMAL" />
 	<param name="tan" 	type="vec3" state="TANGENT" />
-	<param name="bit" 	type="vec3" state="BITANGENT" />
 	<param name="uv" 	type="vec2" state="TEXCOORD" />
 	<param name="MVP" 	type="mat4" state="MODELVIEW_PROJECTION_MATRIX" />
 	<param name="MV"	type="mat4" state="MODELVIEW_MATRIX" />
@@ -41,7 +40,6 @@
 		<bind param="pos" 	program="vp" />
 		<bind param="nor" 	program="vp" />
 		<bind param="tan" 	program="vp" />
-		<bind param="bit" 	program="vp" />
 		<bind param="uv" 	program="vp" />
 		<bind param="MVP" 	program="vp" />
 		<bind param="MV"	program="vp" />
@@ -79,7 +77,7 @@
 uniform mat4 MVP, MV, M;
 uniform mat3 NM;
 uniform vec2 texRepeat;
-in vec3 pos, nor, tan, bit;
+in vec3 pos, nor, tan;
 in vec2 uv;
 
 out jit_PerVertex {	
