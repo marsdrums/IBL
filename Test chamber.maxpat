@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 34.0, 77.0, 2492.0, 1289.0 ],
+		"rect" : [ 34.0, 77.0, 2341.0, 1289.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -40,6 +40,30 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-155",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 457.0, 453.0, 189.0, 22.0 ],
+					"text" : "1. 1000. 1. 1000. 0. 1000. 0. 1000"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-152",
+					"maxclass" : "newobj",
+					"numinlets" : 3,
+					"numoutlets" : 2,
+					"outlettype" : [ "", "bang" ],
+					"patching_rect" : [ 460.0, 532.0, 41.0, 22.0 ],
+					"text" : "line 0."
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-136",
 					"linecount" : 2,
 					"maxclass" : "comment",
@@ -54,10 +78,10 @@
 				"box" : 				{
 					"data" : 					{
 						"clips" : [ 							{
-								"absolutepath" : "bball.mov",
-								"filename" : "bball.mov",
+								"absolutepath" : "countdown.mov",
+								"filename" : "countdown.mov",
 								"filekind" : "moviefile",
-								"id" : "u354000977",
+								"id" : "u215001030",
 								"loop" : 1,
 								"content_state" : 								{
 									"loop" : 1
@@ -2280,7 +2304,7 @@
 					"parameter_enable" : 0,
 					"patching_rect" : [ 411.780000000001451, 714.711340206185469, 18.0, 82.0 ],
 					"size" : 5,
-					"value" : 0
+					"value" : 2
 				}
 
 			}
@@ -2317,8 +2341,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "bang" ],
-					"patching_rect" : [ 575.75, 731.0, 76.0, 22.0 ],
-					"text" : "qmetro 1000"
+					"patching_rect" : [ 575.75, 731.0, 69.0, 22.0 ],
+					"text" : "qmetro 100"
 				}
 
 			}
@@ -2617,7 +2641,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 721.0, 731.0, 119.0, 22.0 ],
+					"patching_rect" : [ 575.75, 761.711340206185469, 119.0, 22.0 ],
 					"text" : "jit.noise 4 float32 8 1"
 				}
 
@@ -2836,7 +2860,7 @@
 					"numinlets" : 9,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 637.350000000001046, 403.0, 124.0, 146.0 ],
+					"patching_rect" : [ 661.350000000001046, 428.855670103092734, 124.0, 146.0 ],
 					"text" : "jit.gl.mesh @draw_mode triangles @auto_tangents 1 @cull_face 1 @shader PBR @texture albedo normal RMOH irradiance equirect rectLightTex"
 				}
 
@@ -2870,13 +2894,12 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-25",
-					"linecount" : 4,
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 717.100000000001046, 245.0, 101.0, 64.0 ],
-					"text" : "jit.gl.model @matrixoutput 1 @automatic 0 @normalize 1"
+					"patching_rect" : [ 712.0, 232.0, 313.0, 22.0 ],
+					"text" : "jit.gl.model @matrixoutput 1 @automatic 1 @normalize 1"
 				}
 
 			}
@@ -4173,13 +4196,12 @@
 				"box" : 				{
 					"color" : [ 0.686274509803922, 0.219607843137255, 0.219607843137255, 1.0 ],
 					"id" : "obj-37",
-					"linecount" : 10,
 					"maxclass" : "newobj",
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 481.0, 369.0, 112.0, 146.0 ],
-					"text" : "jit.gl.gridshape @shape sphere @dim 40 40 @cull_face 1 @scale 0.7 0.7 0.7 @shader PBR @texture albedo normal RMOH irradiance equirect rectLightTex"
+					"patching_rect" : [ 281.160000000000423, 392.0, 841.0, 22.0 ],
+					"text" : "jit.gl.gridshape @shape sphere @dim 25 25 @cull_face 1 @scale 0.7 0.7 0.7 @shader PBR @texture albedo normal RMOH irradiance equirect rectLightTex"
 				}
 
 			}
@@ -4336,6 +4358,18 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 514.980000000001269, 84.5, 150.0, 22.0 ]
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"attr" : "xfade",
+					"id" : "obj-144",
+					"maxclass" : "attrui",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 583.0, 150.5, 150.0, 22.0 ]
 				}
 
 			}
@@ -4542,13 +4576,6 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-119", 0 ],
-					"source" : [ "obj-134", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-265", 5 ],
 					"source" : [ "obj-148", 0 ]
 				}
@@ -4570,8 +4597,29 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-144", 0 ],
+					"source" : [ "obj-152", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-155", 0 ],
+					"source" : [ "obj-152", 1 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-265", 2 ],
 					"source" : [ "obj-153", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-152", 0 ],
+					"source" : [ "obj-155", 0 ]
 				}
 
 			}
@@ -4600,6 +4648,13 @@
 				"patchline" : 				{
 					"destination" : [ "obj-64", 0 ],
 					"source" : [ "obj-18", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-119", 0 ],
+					"source" : [ "obj-188", 0 ]
 				}
 
 			}
@@ -5371,7 +5426,7 @@
 			}
  ],
 		"dependency_cache" : [ 			{
-				"name" : "bball.mov",
+				"name" : "countdown.mov",
 				"bootpath" : "C74:/media/jitter",
 				"type" : "MooV",
 				"implicit" : 1
