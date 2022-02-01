@@ -46,7 +46,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 227.5, 471.0, 150.0, 34.0 ],
-					"text" : "change to PBR_ith_include.jxs"
+					"text" : "change to PBR_with_include.jxs"
 				}
 
 			}
@@ -2280,7 +2280,7 @@
 					"parameter_enable" : 0,
 					"patching_rect" : [ 411.780000000001451, 714.711340206185469, 18.0, 82.0 ],
 					"size" : 5,
-					"value" : 2
+					"value" : 0
 				}
 
 			}
