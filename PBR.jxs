@@ -100,7 +100,7 @@ void main() {
 	jit_out.nor = (M * vec4(nor, 0.)).xyz;
 	jit_out.tan = -(M * vec4(tan, 0.)).xyz;
 	//jit_out.tan = normalize(jit_out.tan - dot(jit_out.tan, jit_out.nor) * jit_out.nor);
-	jit_out.bit = -cross(jit_out.nor, jit_out.tan);
+	jit_out.bit = cross(jit_out.nor, jit_out.tan);
 	jit_out.pos = (M * vec4(pos, 1.)).xyz;
 	jit_out.uv = uv*texRepeat;
 	jit_out.texRepeat = texRepeat;
@@ -580,7 +580,7 @@ vec3 	getRectLightTextured(in light lig, in material mate, in geometry geom){
 
     		difCol *= 0.2;
     */
-    float 	speLod = (lightDist + 1.) * (mate.rou + 1.) * 1.;
+    float 	speLod = (lightDist + 1.) * (mate.rou + 1.) * 1.5;
     		//speLod += abs(luv.x - 0.5)*2. * 2.;
     		//speLod += abs(luv.y - 0.5)*2. * 2.;
     vec3 	speCol = textureLod(rectLightTex, luv, speLod).rgb;
