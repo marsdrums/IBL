@@ -40,6 +40,17 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-12",
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 1003.399999999999636, 619.315501068078675, 150.0, 20.0 ],
+					"text" : "<-- load the environment"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-279",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
@@ -160,18 +171,6 @@
 					"numoutlets" : 0,
 					"patching_rect" : [ 61.519999999998731, 637.526841274263916, 240.480000000001269, 38.0 ],
 					"text" : "Material from maps"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-266",
-					"maxclass" : "newobj",
-					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "bang" ],
-					"patching_rect" : [ 922.0, 590.315501068078675, 58.0, 22.0 ],
-					"text" : "loadbang"
 				}
 
 			}
@@ -2003,7 +2002,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 922.0, 622.315501068078675, 68.0, 22.0 ],
+					"patching_rect" : [ 933.399999999999636, 618.315501068078675, 68.0, 22.0 ],
 					"text" : "env_01.exr"
 				}
 
@@ -4748,13 +4747,6 @@
 				"patchline" : 				{
 					"destination" : [ "obj-61", 0 ],
 					"source" : [ "obj-26", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-248", 0 ],
-					"source" : [ "obj-266", 0 ]
 				}
 
 			}
