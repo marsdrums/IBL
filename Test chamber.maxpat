@@ -2353,7 +2353,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_gl_texture", "" ],
-					"patching_rect" : [ 575.75, 794.171171171171409, 109.0, 133.0 ],
+					"patching_rect" : [ 575.75, 794.171171171171409, 111.0, 133.0 ],
 					"text" : "jit.gl.texture @name rectLightTex @rectangle 0 @mipmap trilinear @wrap repeat repeat repeat @adapt 0 @dim 512 512"
 				}
 
