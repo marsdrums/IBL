@@ -3182,8 +3182,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 61.519999999998731, 1314.855670103092734, 587.0, 22.0 ],
-					"text" : "jit.gl.gridshape @shape sphere @scale 0.05 0.05 0.05 @dim 15 15 @gl_color 1. 0.1 0.2 1. @position 0. 2. 0."
+					"patching_rect" : [ 61.519999999998731, 1314.855670103092734, 649.0, 22.0 ],
+					"text" : "jit.gl.gridshape @shape sphere @scale 0.05 0.05 0.05 @dim 15 15 @gl_color 1. 0.1 0.2 1. @position 0. 2. 0. @enable 0"
 				}
 
 			}
