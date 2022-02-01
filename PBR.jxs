@@ -28,7 +28,7 @@
 
 	<param name="texRepeat" 			type="vec2" default="1. 1." />
 	<param name="heightScale"			type="float" default="0.002" />
-	<param name="triplanarUV"   		type="float" default="0." />
+	<param name="triplanarUV"   		type="float" default="1." />
 	<param name="triplanarExp"  		type="float" default="12." />
 	<param name="triplanarTexRepeat" 	type="vec2" default="0.5 0.5" />
 	<param name="parallaxMapping"  		type="float" default="0." />
@@ -169,11 +169,7 @@ struct light{
 	vec3  	ligDir;
 	float  	cutoffInner;
 	float  	cutoffOuter;
-	vec3 	right, up;
 	float 	width, height;
-	float 	halfWidth, halfHeight;
-	vec3 	p0, p1, p2, p3;
-	vec3 	p0_P, p1_P, p2_P, p3_P, pos_P;
 	bool 	twoSided;
 };
 
@@ -202,28 +198,7 @@ vec4 	triplanar(sampler2D tex){
 	vec4 	Z = texture(tex, Zuv)*k.z;
 	return 	(X+Y+Z)/(k.x+k.y+k.z);
 }
-vec4 	triplanarAlb(sampler2D tex){
 
-	vec3 	k = normalize(pow(abs(jit_in.modelNor), vec3(triplanarExp)));
-	vec2 	Xuv = jit_in.modelPos.yz*triplanarTexRepeat;
-			Xuv.x = jit_in.modelNor.x < 0. ? Xuv.x : -Xuv.x;
-	vec2 	Yuv = jit_in.modelPos.xz*triplanarTexRepeat;
-			Yuv.x = jit_in.modelNor.y < 0. ? Yuv.x : -Yuv.x;
-	vec2 	Zuv = jit_in.modelPos.xy*triplanarTexRepeat;
-			Zuv.x = jit_in.modelNor.z >= 0. ? Zuv.x : -Zuv.x;
-			Xuv.y += 0.5;
-			Zuv.x += 0.5;
-	vec4 	X = texture(tex, Xuv);
-			X.rgb = sRGB2lin(X.rgb);
-			X *= k.x;
-	vec4 	Y = texture(tex, Yuv);
-			Y.rgb = sRGB2lin(Y.rgb);
-			Y *= k.y;
-	vec4 	Z = texture(tex, Zuv);
-			Z.rgb = sRGB2lin(Z.rgb);
-			Z *= k.z;
-	return 	(X+Y+Z)/(k.x+k.y+k.z);
-}
 void 	parallax(inout material mate, inout geometry geom){
 
 	vec3	V 	= normalize(jit_in.transTBN * (eye - jit_in.pos));		//tangent view direction
