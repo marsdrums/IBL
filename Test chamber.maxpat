@@ -40,6 +40,30 @@
 		"assistshowspatchername" : 0,
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-76",
+					"linecount" : 6,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 1432.399999999999864, 564.315501068078675, 473.0, 89.0 ],
+					"text" : "to do:\n- add tube light, disc light and sphere light\n- find a more robust way to orient area lights (quaternions?)\n- check for common varibles and try to make those global\n- consider gamma-correcting light textures the way in\n- move from equirectangular to cube environment mapping(reflections)"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-47",
+					"linecount" : 3,
+					"maxclass" : "comment",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 1432.399999999999864, 665.211340206185469, 480.749999999999091, 48.0 ],
+					"text" : "ideas:\n- procedural texturing inside the PBR shader\n- try to implement parallax mapping with triplanar mapping"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-211",
 					"maxclass" : "newobj",
 					"numinlets" : 1,
