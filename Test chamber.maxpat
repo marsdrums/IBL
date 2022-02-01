@@ -80,7 +80,6 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 431.980000000001269, 761.711340206185469, 73.0, 20.0 ],
-					"presentation_linecount" : 2,
 					"text" : "cobblestone"
 				}
 
@@ -103,7 +102,6 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 431.980000000001269, 731.711340206185469, 48.0, 20.0 ],
-					"presentation_linecount" : 2,
 					"text" : "metal 1"
 				}
 
@@ -149,7 +147,6 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 61.519999999998731, 858.526841274263916, 278.0, 38.0 ],
-					"presentation_linecount" : 2,
 					"text" : "Material from uniforms"
 				}
 
@@ -2006,8 +2003,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 922.0, 622.315501068078675, 48.0, 22.0 ],
-					"text" : "env_01"
+					"patching_rect" : [ 922.0, 622.315501068078675, 68.0, 22.0 ],
+					"text" : "env_01.exr"
 				}
 
 			}
@@ -4108,7 +4105,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "jit_matrix", "" ],
-					"patching_rect" : [ 481.0, 369.0, 111.0, 146.0 ],
+					"patching_rect" : [ 481.0, 369.0, 112.0, 146.0 ],
 					"text" : "jit.gl.gridshape @shape sphere @dim 40 40 @cull_face 1 @scale 0.7 0.7 0.7 @shader PBR @texture albedo normal RMOH irradiance equirect rectLightTex"
 				}
 
