@@ -1,0 +1,302 @@
+<jittershader name="PBR">
+	<description>a physical-based rendering shader </description>
+	<param name="pos" 	type="vec3" state="POSITION" />
+	<param name="nor" 	type="vec3" state="NORMAL" />
+	<param name="tan" 	type="vec3" state="TANGENT" />
+	<param name="bit" 	type="vec3" state="BITANGENT" />
+	<param name="uv" 	type="vec2" state="TEXCOORD" />
+	<param name="MVP" 	type="mat4" state="MODELVIEW_PROJECTION_MATRIX" />
+	<param name="MV"	type="mat4" state="MODELVIEW_MATRIX" />
+	<param name="M" 	type="mat4" state="WORLD_MATRIX" />
+	<param name="NM"	type="mat3" state="NORMAL_MATRIX" />
+	<param name="eye" 	type="vec3" state="CAMERA_POSITION" />
+	//textures
+	<param name="albedoTex" 	type="int" default="0" />
+	<param name="normalTex" 	type="int" default="1" />
+	<param name="RMOHTex" 		type="int" default="2" />
+	<param name="irradianceTex"	type="int" default="3" />
+	<param name="equirectTex"	type="int" default="4" />
+	<param name="rectLightTex"  type="int" default="5" />
+	<param name="integMap"		type="int" default="6" />
+	<texture file="ibl_brdf_lut.png" type="float16" unit="6" rectangle="0" filter="none none" wrap="repeat repeat"/>
+
+
+    <param name="useTextures"  	type="float"  	default="1." />
+	<param name="albedo"  		type="vec3" 	default="1. 1. 1." />
+	<param name="roughness"  	type="float" 	default="0.3" />
+	<param name="metalness"  	type="float" 	default="0.0" />
+
+	<param name="texRepeat" 			type="vec2" default="1. 1." />
+	<param name="heightScale"			type="float" default="0.002" />
+	<param name="triplanarUV"   		type="float" default="0." />
+	<param name="triplanarExp"  		type="float" default="12." />
+	<param name="triplanarTexRepeat" 	type="vec2" default="0.5 0.5" />
+	<param name="parallaxMapping"  		type="float" default="0." />
+	<param name="parallaxIterations" 	type="vec2"  default="50. 100." />
+	<param name="selfShadowing"   		type="float" default="0." />
+	<param name="shadowAmount"  		type="float" default="15." />
+	<param name="shadowIterations" 		type="vec2"  default="50. 100." />
+
+	<language name="glsl" version="1.5">
+		<bind param="pos" 	program="vp" />
+		<bind param="nor" 	program="vp" />
+		<bind param="tan" 	program="vp" />
+		<bind param="bit" 	program="vp" />
+		<bind param="uv" 	program="vp" />
+		<bind param="MVP" 	program="vp" />
+		<bind param="MV"	program="vp" />
+		<bind param="M" 	program="vp" />
+		<bind param="NM"	program="vp" />
+		<bind param="eye" 	program="fp" />
+		//textures
+		<bind param="albedoTex" 	program="fp" />
+		<bind param="normalTex" 	program="fp" />
+		<bind param="RMOHTex" 		program="fp" />
+		<bind param="irradianceTex" program="fp" />
+		<bind param="equirectTex"   program="fp" />
+		<bind param="rectLightTex"  program="fp" />
+		<bind param="integMap"      program="fp" />
+
+		<bind param="useTextures" 	program="fp" />
+		<bind param="albedo" 		program="fp" />
+		<bind param="roughness"		program="fp" />
+		<bind param="metalness" 	program="fp" />
+
+		<bind param="texRepeat"				program="vp" />
+		<bind param="heightScale"   		program="fp" />
+		<bind param="triplanarUV"   		program="fp" />
+		<bind param="triplanarExp"			program="fp" />
+		<bind param="triplanarTexRepeat" 	program="fp" />
+		<bind param="parallaxMapping"  		program="fp" />
+		<bind param="parallaxIterations"   	program="fp" />
+		<bind param="selfShadowing"   		program="fp" />
+		<bind param="shadowAmount"  		program="fp" />
+		<bind param="shadowIterations"   	program="fp" />
+
+		//include 
+		<include source="PBR_common.glsl" 		program="fp" />
+		<include source="PBR_lights.glsl" 		program="fp" />
+		<include source="PBR_IBL.glsl" 			program="fp" />
+		<include source="PBR_rect_light.glsl" 	program="fp" />
+
+		<program name="vp" type="vertex">
+<![CDATA[
+#version 330 core
+uniform mat4 MVP, MV, M;
+uniform mat3 NM;
+uniform vec2 texRepeat;
+in vec3 pos, nor, tan, bit;
+in vec2 uv;
+
+out jit_PerVertex {	
+	smooth 	vec3 nor;
+	smooth 	vec3 tan;
+	smooth 	vec3 bit;
+	smooth 	vec3 pos;
+	smooth 	vec2 uv;
+	flat 	vec2 texRepeat;
+	smooth 	vec3 eyePos;
+	smooth  vec3 modelPos;
+	smooth  vec3 modelNor;
+	smooth  mat3 TBN;
+	smooth  mat3 transTBN;
+} jit_out;
+
+void main() {	
+
+	gl_Position = MVP * vec4(pos, 1.);	
+	jit_out.nor = (M * vec4(nor, 0.)).xyz;
+	jit_out.tan = -(M * vec4(tan, 0.)).xyz;
+	//jit_out.tan = normalize(jit_out.tan - dot(jit_out.tan, jit_out.nor) * jit_out.nor);
+	jit_out.bit = -cross(jit_out.nor, jit_out.tan);
+	jit_out.pos = (M * vec4(pos, 1.)).xyz;
+	jit_out.uv = uv*texRepeat;
+	jit_out.texRepeat = texRepeat;
+	jit_out.eyePos = (MV * vec4(pos, 1.)).xyz;
+	jit_out.modelPos = pos;
+	jit_out.modelNor = nor;
+	jit_out.TBN = mat3(jit_out.tan, jit_out.bit, jit_out.nor);
+	jit_out.transTBN = transpose(jit_out.TBN);
+}
+]]>
+		</program>
+		<program name="fp" type="fragment">
+<![CDATA[
+#version 330 core
+#define PI 3.14159265
+#define TWOPI 6.28318531
+#define PI_INV 0.3183098861
+#define RECT_LIGHT_RADIUS 4.0 //controlla cosa rappresenta questo parametro ***
+#define RECT_LIGHT_INTENSITY 64.0 //controlla cosa rappresenta questo parametro ***
+
+uniform vec3 eye;
+uniform sampler2D albedoTex, normalTex, RMOHTex, equirectTex, rectLightTex, integMap;
+uniform samplerCube irradianceTex;
+uniform float heightScale, triplanarUV, triplanarExp, parallaxMapping, selfShadowing, shadowAmount, useTextures;
+uniform vec2 triplanarTexRepeat, parallaxIterations, shadowIterations;
+uniform vec3 albedo;
+uniform float roughness, metalness;
+
+//common
+vec3 	lin2sRGB();
+vec3 	sRGB2lin();
+float 	saturate();
+vec4 	triplanar();
+vec4 	triplanarAlb();
+void 	parallax();
+float 	shadow();
+vec3 	fresnelSchlickRoughness();
+float 	DistributionGGX();
+float 	GeometrySchlickGGX();
+float 	GeometrySmith();
+vec3 	getRadiance();
+
+//lighting functions		
+vec3	getPointLight();
+vec3	getDirectionalLight();
+vec3  	getSpotLight();
+
+//IBL functions
+vec2 	dir2uv();
+vec3  	getIBL();
+
+//area light functions
+float 	rectSolidAngle();
+float 	normalDistributionGGXRect();
+vec3 	rayPlaneIntersect();
+vec3 	getRectLight();
+vec3 	getRectLightTextured();
+void  	fillStructuresFromTextures();
+void  	fillStructuresFromUniform();
+vec3 	gammaCorrection();
+
+in jit_PerVertex {
+	smooth 	vec3 nor;
+	smooth 	vec3 tan;
+	smooth 	vec3 bit;
+	smooth 	vec3 pos;
+	smooth 	vec2 uv;	
+	flat 	vec2 texRepeat;
+	smooth  vec3 eyePos;
+	smooth  vec3 modelPos;
+	smooth  vec3 modelNor;
+	smooth  mat3 TBN;
+	smooth  mat3 transTBN;
+} jit_in;
+
+struct 	material{
+	vec3 	alb;
+	float 	occ;
+	float 	met;
+	float 	rou;
+	float 	height;
+	vec3 	F0;
+};
+
+struct 	geometry{
+	vec3	V;
+	vec3	N;
+	vec3 	R;
+	vec3	tanN;
+	vec3	pos;
+	vec2	uv;
+};
+
+struct light{
+	vec3  	ligPos;
+	vec3    ligCol;
+	vec3  	ligDir;
+	float  	cutoffInner;
+	float  	cutoffOuter;
+	vec3 	right, up;
+	float 	width, height;
+	float 	halfWidth, halfHeight;
+	vec3 	p0, p1, p2, p3;
+	vec3 	p0_P, p1_P, p2_P, p3_P, pos_P;
+	bool 	twoSided;
+};
+
+out vec4 col;
+
+void 	main() {
+
+	material 	mate;
+	geometry 	geom;
+	light 		lig;
+
+	//fill structures
+
+	//fillStructuresFromTextures(mate, geom);
+	//fillStructuresFromUniform(mate, geom);
+
+	//lighting
+	col.rgb = vec3(0.); //initialize the out color 
+/*
+	{
+		lig.ligPos		= vec3(1., 3., 0.);					//light position
+		lig.ligCol 		= vec3(1.)*9.;
+		col.rgb 		+= getPointLight(lig, mate, geom);
+	}
+	{
+		lig.ligPos		= vec3(-2., 1., -1.);				//light position
+		lig.ligCol 		= vec3(0.8, 0.5, 0.1)*9.;
+		col.rgb 		+= getPointLight(lig, mate, geom);
+	}
+	{
+		lig.ligPos		= vec3(2., -1., 1.);				//light position
+		lig.ligCol 		= vec3(0.1, 0.5, 0.9)*9.;
+		col.rgb 		+= getPointLight(lig, mate, geom);
+	}
+	{
+		lig.ligPos		= vec3(-2., -1., -2.);				//light position
+		lig.ligCol 		= vec3(1.)*9.;	
+		col.rgb 		+= getPointLight(lig, mate, geom);
+	}
+	/*
+	{
+		lig.ligDir 		= normalize(vec3(0., 1., 0.));		//light direction
+		lig.ligCol 		= vec3(1.)*9.;	
+		col.rgb 		+= getDirectionalLight(lig, mate, geom);
+	}
+
+	{
+		lig.ligPos 		= vec3(0., 2., 0.);
+		lig.ligDir 		= vec3(0., 1., 0.);		//light direction
+		lig.ligCol 		= vec3(1., 0.1, 0.2)*8.;	
+		lig.cutoffInner = -0.7;
+		lig.cutoffOuter = -0.5;
+		col.rgb 		+= getSpotLight(lig, mate, geom);
+	}
+	{
+		lig.ligPos 		= vec3(3., 0., 0.);
+		lig.ligDir 		= vec3(1., 0., 0.);//vec3(0., 0., -1.);
+		lig.ligCol 		= vec3(0.1, 0.4, 0.7);
+		lig.width 		= 4.;
+		lig.height 		= 2.;
+		lig.twoSided 	= false;
+		col.rgb 		+= getRectLightTextured(lig, mate, geom);
+	}
+	{
+		lig.ligPos 		= vec3(-3., 0., 0.);
+		lig.ligDir 		= normalize(lig.ligPos);//vec3(0., 0., -1.);
+		lig.ligCol 		= vec3(0.7, 0.4, 0.1);
+		lig.width 		= 1.;
+		lig.height 		= 1.;
+		lig.twoSided 	= false;
+		col.rgb 		+= getRectLight(lig, mate, geom);
+	}
+
+	{
+		col.rgb 		+= getIBL(mate, geom); 
+	}
+
+	col.rgb = gammaCorrection(col.rgb);
+	col.a = 1.;
+*/
+
+	col = vec4(1.);
+}	
+]]>
+		</program>
+	</language>
+</jittershader>
