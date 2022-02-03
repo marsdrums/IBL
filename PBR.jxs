@@ -280,7 +280,7 @@ float 	shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
     // calculate initial parameters
     float numSamplesUnderSurface = 0.;
     float shadowMultiplier = 0.;
-    float numLayers = 100.;//mix(shadowIterations.x, shadowIterations.y, abs(NdotL));
+    float numLayers = mix(shadowIterations.x, shadowIterations.y, abs(NdotL));
     float layerHeight = initialHeight / numLayers;
     vec2 texStep = heightScale * L.xy / L.z / numLayers; 
 
