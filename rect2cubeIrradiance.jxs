@@ -44,12 +44,14 @@ vec2 dir2uv(vec3 v)
     vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
     uv *= vec2(-0.1591, 0.3183); //to invert atan
     uv += 0.5;
+    //uv.y = 1. - uv.y;
+    //uv.x = 1. - uv.x;
     return uv;
 }
 
 vec3 equi2car(vec2 uv){
 
-	float phi = uv.x*PI*2;
+	float phi = uv.x*PI*2 + 3.1415*0.5;
 	float theta   = uv.y*PI;
 	float x = sin(theta)*cos(phi);
 	float y = sin(theta)*sin(phi);
