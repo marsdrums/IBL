@@ -637,7 +637,7 @@ vec3 	getRectLightTextured(in light lig, in material mate, in geometry geom){
 
     		difCol *= 0.2;
     */
-    float 	speLod = (lightDist) * (mate.rou*2.) * 1.5;
+    float 	speLod = (lightDist) * (mate.rou*2. + 1.) * 1.5;
     		//speLod += abs(luv.x - 0.5)*2. * 2.;
     		//speLod += abs(luv.y - 0.5)*2. * 2.;
     vec3 	speCol = textureLod(rectLightTex, luv, speLod).rgb;
@@ -713,7 +713,7 @@ void 	main() {
 
 	//lighting
 	col.rgb = vec3(0.); //initialize the out color 
-/*
+
 	{
 		lig.ligPos		= vec3(1., 3., 0.);					//light position
 		lig.ligCol 		= vec3(1.)*9.;
@@ -730,7 +730,7 @@ void 	main() {
 		lig.ligCol 		= vec3(0.1, 0.5, 0.9)*9.;
 		col.rgb 		+= getPointLight(lig, mate, geom);
 	}
-
+/*
 	{
 		lig.ligPos		= vec3(-2., -1., -2.);				//light position
 		lig.ligCol 		= vec3(1.)*9.;	
@@ -774,13 +774,23 @@ void 	main() {
 	{
 		lig.ligPos 		= vec3(0., 0.5, -3.);
 		lig.ligDir 		= vec3(0., 0., -1.);
+		lig.ligCol 		= vec3(1.)*10.;
+		lig.width 		= 3.;
+		lig.height 		= 2.;
+		lig.twoSided 	= false;
+		col.rgb 		+= getRectLight(lig, mate, geom);
+	}
+/*
+	{
+		lig.ligPos 		= vec3(0., 0.5, -3.);
+		lig.ligDir 		= vec3(0., 0., -1.);
 		lig.ligCol 		= vec3(1.);
 		lig.width 		= 3.;
 		lig.height 		= 2.;
 		lig.twoSided 	= false;
 		col.rgb 		+= getRectLightTextured(lig, mate, geom);
 	}
-
+*/
 
 	{
 		col.rgb 		+= getIBL(mate, geom); 
