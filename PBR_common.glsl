@@ -1,5 +1,61 @@
 //PBR common functions
+#define PI 3.14159265
+#define TWOPI 6.28318531
+#define PI_INV 0.3183098861
+#define RECT_LIGHT_RADIUS 4.0 //controlla cosa rappresenta questo parametro ***
+#define RECT_LIGHT_INTENSITY 64.0 //controlla cosa rappresenta questo parametro ***
 
+uniform vec3 eye;
+uniform sampler2D albedoTex, normalTex, RMOHTex, equirectTex, rectLightTex, integMap;
+uniform samplerCube irradianceTex;
+uniform float heightScale, triplanarUV, triplanarExp, parallaxMapping, selfShadowing, shadowAmount, useTextures, worldLocked;
+uniform vec2 triplanarTexRepeat, parallaxIterations, shadowIterations;
+uniform vec3 albedo;
+uniform float roughness, metalness;
+uniform float near, far;
+uniform mat4 Vmat, Pmat;
+
+struct 	material{
+	vec3 	alb;
+	float 	occ;
+	float 	met;
+	float 	rou;
+	float 	height;
+	vec3 	F0;
+};
+
+struct 	geometry{
+	vec3	V;
+	vec3	N;
+	vec3 	R;
+	vec3	tanN;
+	vec3	pos;
+	vec2	uv;
+};
+
+struct light{
+	vec3  	ligPos;
+	vec3    ligCol;
+	vec3  	ligDir;
+	float  	cutoffInner;
+	float  	cutoffOuter;
+	float 	width, height;
+	bool 	twoSided;
+};
+
+in jit_PerVertex {
+	smooth 	vec3 nor;
+	smooth 	vec3 tan;
+	smooth 	vec3 bit;
+	smooth 	vec3 pos;
+	smooth 	vec2 uv;	
+	flat 	vec2 texRepeat;
+	smooth  vec3 eyePos;
+	smooth  vec3 modelPos;
+	smooth  vec3 modelNor;
+	smooth  mat3 TBN;
+	smooth  mat3 transTBN;
+} jit_in;
 
 //utilities
 vec3 	lin2sRGB(vec3 x){ return pow(x, vec3(0.4545454545));}
