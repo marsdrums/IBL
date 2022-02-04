@@ -6,6 +6,7 @@
 	<param name="bit" 	type="vec3" state="BITANGENT" />
 	<param name="uv" 	type="vec2" state="TEXCOORD" />
 	<param name="MVP" 	type="mat4" state="MODELVIEW_PROJECTION_MATRIX" />
+	<param name="prevMVP" type="mat4" state="PREV_MODELVIEW_PROJECTION_MATRIX" />
 	<param name="MV"	type="mat4" state="MODELVIEW_MATRIX" />
 	<param name="M" 	type="mat4" state="WORLD_MATRIX" />
 	<param name="NM"	type="mat3" state="NORMAL_MATRIX" />
@@ -49,6 +50,7 @@
 		<bind param="bit" 	program="vp" />
 		<bind param="uv" 	program="vp" />
 		<bind param="MVP" 	program="vp" />
+		<bind param="prevMVP" program="vp" />
 		<bind param="MV"	program="vp" />
 		<bind param="M" 	program="vp" />
 		<bind param="NM"	program="vp" />
@@ -86,7 +88,7 @@
 		<program name="vp" type="vertex">
 <![CDATA[
 #version 330 core
-uniform mat4 MVP, MV, M;
+uniform mat4 MVP, MV, M, prevMVP;
 uniform mat3 NM;
 uniform vec2 texRepeat;
 in vec3 pos, nor, tan, bit;
@@ -104,11 +106,15 @@ out jit_PerVertex {
 	smooth  vec3 modelNor;
 	smooth  mat3 TBN;
 	smooth  mat3 transTBN;
+	smooth  vec4 prevPos;
+	smooth 	vec4 currPos;
 } jit_out;
 
 void main() {	
 
-	gl_Position = MVP * vec4(pos, 1.);	
+	jit_out.currPos = MVP * vec4(pos, 1.);	
+	jit_out.prevPos = prevMVP * vec4(pos, 1.);	
+	gl_Position = jit_out.currPos;
 	jit_out.nor = (M * vec4(nor, 0.)).xyz;
 	jit_out.tan = (M * vec4(tan, 0.)).xyz;
 	//jit_out.tan = normalize(jit_out.tan - dot(jit_out.tan, jit_out.nor) * jit_out.nor);
@@ -155,6 +161,8 @@ in jit_PerVertex {
 	smooth  vec3 modelNor;
 	smooth  mat3 TBN;
 	smooth  mat3 transTBN;
+	smooth  vec4 prevPos;
+	smooth 	vec4 currPos;
 } jit_in;
 
 struct 	material{
@@ -187,6 +195,7 @@ struct light{
 
 layout(location = 0) out vec4 col;
 layout(location = 1) out vec4 depth;
+layout(location = 2) out vec4 velocity;
 
 //utilities
 vec3 	lin2sRGB(vec3 x){ return pow(x, vec3(0.4545454545));}
@@ -778,7 +787,7 @@ void 	main() {
 		lig.width 		= 3.;
 		lig.height 		= 2.;
 		lig.twoSided 	= false;
-		col.rgb 		+= getRectLight(lig, mate, geom);
+		col.rgb 		+= getRectLightTextured(lig, mate, geom);
 	}
 /*
 	{
@@ -808,6 +817,10 @@ void 	main() {
 	depth.rgb = (Pmat * Vmat * vec4(geom.N, 0.)).xyz;
 	//depth.b *= -1.;
 	depth.a = z;
+      
+    vec2 a = (jit_in.currPos.xy / jit_in.currPos.w) * 0.5 + 0.5;
+    vec2 b = (jit_in.prevPos.xy / jit_in.prevPos.w) * 0.5 + 0.5;
+	velocity = vec4(a - b, 0., 1.);
 
 }	
 ]]>
