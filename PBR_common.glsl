@@ -6,8 +6,8 @@
 #define RECT_LIGHT_INTENSITY 64.0 //controlla cosa rappresenta questo parametro ***
 
 uniform vec3 eye;
-uniform sampler2D albedoTex, normalTex, RMOHTex, equirectTex, rectLightTex, integMap;
-uniform samplerCube irradianceTex;
+uniform sampler2D albedoTex, normalTex, RMOHTex, rectLightTex, integMap;
+uniform samplerCube irradianceTex, reflectionTex;
 uniform float heightScale, triplanarUV, triplanarExp, parallaxMapping, selfShadowing, shadowAmount, useTextures, worldLocked;
 uniform vec2 triplanarTexRepeat, parallaxIterations, shadowIterations;
 uniform vec3 albedo;
@@ -80,28 +80,7 @@ vec4 	triplanar(sampler2D tex){
 	vec4 	Z = texture(tex, Zuv)*k.z;
 	return 	(X+Y+Z)/(k.x+k.y+k.z);
 }
-vec4 	triplanarAlb(sampler2D tex){
 
-	vec3 	k = normalize(pow(abs(jit_in.modelNor), vec3(triplanarExp)));
-	vec2 	Xuv = jit_in.modelPos.yz*triplanarTexRepeat;
-			Xuv.x = jit_in.modelNor.x < 0. ? Xuv.x : -Xuv.x;
-	vec2 	Yuv = jit_in.modelPos.xz*triplanarTexRepeat;
-			Yuv.x = jit_in.modelNor.y < 0. ? Yuv.x : -Yuv.x;
-	vec2 	Zuv = jit_in.modelPos.xy*triplanarTexRepeat;
-			Zuv.x = jit_in.modelNor.z >= 0. ? Zuv.x : -Zuv.x;
-			Xuv.y += 0.5;
-			Zuv.x += 0.5;
-	vec4 	X = texture(tex, Xuv);
-			X.rgb = sRGB2lin(X.rgb);
-			X *= k.x;
-	vec4 	Y = texture(tex, Yuv);
-			Y.rgb = sRGB2lin(Y.rgb);
-			Y *= k.y;
-	vec4 	Z = texture(tex, Zuv);
-			Z.rgb = sRGB2lin(Z.rgb);
-			Z *= k.z;
-	return 	(X+Y+Z)/(k.x+k.y+k.z);
-}
 
 //parallax mapping
 void 	parallax(inout material mate, inout geometry geom){
@@ -265,7 +244,7 @@ void  	fillStructuresFromTextures(inout material mate, inout geometry geom){
 	if(parallaxMapping == 1.){parallax(mate, geom);}	//texture coordinates
 	
 	vec4	RMOH 		= triplanarTexturing ? triplanar(RMOHTex) 			: texture(RMOHTex, geom.uv);	
-			mate.alb 	= triplanarTexturing ? triplanarAlb(albedoTex).rgb 	: sRGB2lin(texture(albedoTex, geom.uv).rgb);	
+			mate.alb 	= triplanarTexturing ? triplanar(albedoTex).rgb 	: texture(albedoTex, geom.uv).rgb;	
 			mate.rou 	= RMOH.r;	//roughness
 			mate.met 	= RMOH.g;	//metallic
 			mate.occ 	= RMOH.b;	//ambient occlusion

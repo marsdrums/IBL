@@ -19,7 +19,7 @@
 	<param name="normalTex" 	type="int" default="1" />
 	<param name="RMOHTex" 		type="int" default="2" />
 	<param name="irradianceTex"	type="int" default="3" />
-	<param name="equirectTex"	type="int" default="4" />
+	<param name="reflectionTex"	type="int" default="4" />
 	<param name="rectLightTex"  type="int" default="5" />
 	<param name="integMap"		type="int" default="6" />
 	<texture file="ibl_brdf_lut.png" type="float16" unit="6" rectangle="0" filter="none none" wrap="repeat repeat"/>
@@ -62,7 +62,7 @@
 		<bind param="normalTex" 	program="fp" />
 		<bind param="RMOHTex" 		program="fp" />
 		<bind param="irradianceTex" program="fp" />
-		<bind param="equirectTex"   program="fp" />
+		<bind param="reflectionTex"   program="fp" />
 		<bind param="rectLightTex"  program="fp" />
 		<bind param="integMap"      program="fp" />
 
@@ -145,12 +145,12 @@ void 	main() {
 
 	//fill structures
 
-	fillStructuresFromTextures(mate, geom);
-	//fillStructuresFromUniform(mate, geom);
+	//fillStructuresFromTextures(mate, geom);
+	fillStructuresFromUniform(mate, geom);
 
 	//lighting
 	col.rgb = vec3(0.); //initialize the out color 
-
+/*
 	{
 		lig.ligPos		= vec3(1., 3., 0.);					//light position
 		lig.ligCol 		= vec3(1.)*9.;
@@ -167,7 +167,7 @@ void 	main() {
 		lig.ligCol 		= vec3(0.1, 0.5, 0.9)*9.;
 		col.rgb 		+= getPointLight(lig, mate, geom);
 	}
-/*
+
 	{
 		lig.ligPos		= vec3(-2., -1., -2.);				//light position
 		lig.ligCol 		= vec3(1.)*9.;	
@@ -188,7 +188,7 @@ void 	main() {
 		lig.cutoffOuter = -0.5;
 		col.rgb 		+= getSpotLight(lig, mate, geom);
 	}
-*/
+
 	{
 		lig.ligPos 		= vec3(3., 0.5, 0.);
 		lig.ligDir 		= vec3(1., 0., 0.);//vec3(0., 0., -1.);
@@ -217,7 +217,7 @@ void 	main() {
 		lig.twoSided 	= false;
 		col.rgb 		+= getRectLight(lig, mate, geom);
 	}
-/*
+
 	{
 		lig.ligPos 		= vec3(0., 0.5, -3.);
 		lig.ligDir 		= vec3(0., 0., -1.);
