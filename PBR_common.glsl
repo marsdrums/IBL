@@ -6,8 +6,8 @@
 #define RECT_LIGHT_INTENSITY 64.0 //controlla cosa rappresenta questo parametro ***
 
 uniform vec3 eye;
-uniform sampler2D albedoTex, normalTex, RMOHTex, rectLightTex, integMap;
-uniform samplerCube irradianceTex, reflectionTex;
+uniform sampler2D albedoTex, normalTex, RMOHTex, rectLightTex, integMap, reflectionTex;
+uniform samplerCube irradianceTex;//, reflectionTex;
 uniform float heightScale, triplanarUV, triplanarExp, parallaxMapping, selfShadowing, shadowAmount, useTextures, worldLocked;
 uniform vec2 triplanarTexRepeat, parallaxIterations, shadowIterations;
 uniform vec3 albedo;

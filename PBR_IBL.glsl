@@ -20,7 +20,7 @@ vec3  	getIBL(in material mate, in geometry geom){
 
 	float 	lod             	= 0.;//mate.rou*15.; //*** put back a variable lod
 	vec3	ref 				= reflect(-geom.V, geom.N);
-	vec3 	prefilteredColor 	= texture(reflectionTex, ref).rgb;//*** put back textureLod
+	vec3 	prefilteredColor 	= texture(reflectionTex, dir2uv(ref)).rgb;//*** put back textureLod
 	vec2 	envBRDF          	= texture(integMap, vec2(NdotV, mate.rou)).xy;
  	vec3 	specular 			= prefilteredColor * (kS * envBRDF.x + envBRDF.y); 
 
