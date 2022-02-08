@@ -55,6 +55,8 @@ in jit_PerVertex {
 	smooth  vec3 modelNor;
 	smooth  mat3 TBN;
 	smooth  mat3 transTBN;
+	smooth  vec4 currPos;
+	smooth  vec4 prevPos;
 } jit_in;
 
 //utilities
@@ -85,7 +87,7 @@ vec4 	triplanar(sampler2D tex){
 //parallax mapping
 void 	parallax(inout material mate, inout geometry geom){
 
-	vec3	V 	= normalize(jit_in.transTBN * (eye - jit_in.pos));		//tangent view direction
+	vec3	V 	= normalize(jit_in.transTBN * (jit_in.pos - eye));		//tangent view direction
 	//compute texture coordinates ratio
 	float uvRatio = jit_in.texRepeat.x / jit_in.texRepeat.y; 
 	V.x *= uvRatio;
@@ -112,7 +114,7 @@ void 	parallax(inout material mate, inout geometry geom){
       	// to the next layer
       	curLayerHeight += layerHeight; 
       	// shift of texture coordinates
-      	currentTextureCoords -= dtex;
+      	currentTextureCoords += dtex;
       	// new depth from heightmap
       	heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).a;
    	}
@@ -120,7 +122,7 @@ void 	parallax(inout material mate, inout geometry geom){
    	///////////////////////////////////////////////////////////
 
    	// previous texture coordinates
-   	vec2 prevTCoords = currentTextureCoords + dtex;
+   	vec2 prevTCoords = currentTextureCoords - dtex;
 
    	// heights for linear interpolation
    	float nextH = heightFromTexture - curLayerHeight;
@@ -132,11 +134,14 @@ void 	parallax(inout material mate, inout geometry geom){
 
    	// interpolation of texture coordinates
    	geom.uv = mix(currentTextureCoords, prevTCoords, vec2(weight));
-   	mate.height = curLayerHeight + mix(nextH, prevH, weight);
+   	mate.height = curLayerHeight + mix(nextH, prevH,weight);
    	if(geom.uv.x > jit_in.texRepeat.x || geom.uv.y > jit_in.texRepeat.y || geom.uv.x < 0.0 || geom.uv.y < 0.0){discard; }
 }
+
 float 	shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
 
+	//L.z *= -1.;
+	//N.y *= -1.;
    // calculate lighting only for surface oriented to the light source
    float NdotL = dot(N, L);
    if(NdotL < 0.0) {return 0.;}
@@ -146,11 +151,11 @@ float 	shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
     float shadowMultiplier = 0.;
     float numLayers = mix(shadowIterations.x, shadowIterations.y, abs(NdotL));
     float layerHeight = initialHeight / numLayers;
-    vec2 texStep = heightScale * L.xy / L.z / numLayers;
+    vec2 texStep = heightScale * L.xy / L.z / numLayers; 
 
     // current parameters
     float currentLayerHeight = initialHeight - layerHeight;
-    vec2 currentTextureCoords = initialTexCoord + texStep;
+    vec2 currentTextureCoords = initialTexCoord - texStep;
     float heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).a;
     float stepIndex = 1.;
 
@@ -164,20 +169,20 @@ float 	shadow(vec3 L, vec3 N, vec2 initialTexCoord, float initialHeight){
 
             // calculate partial shadowing factor
             numSamplesUnderSurface += 1.;
-            float newShadowMultiplier = (currentLayerHeight  - heightFromTexture)*(1.0 - stepIndex / numLayers);
+            float newShadowMultiplier = (currentLayerHeight  - heightFromTexture)*(stepIndex / numLayers);
             shadowMultiplier = max(shadowMultiplier, newShadowMultiplier);
         }
 
         // offset to the next layer
         stepIndex += 1.;
         currentLayerHeight -= layerHeight;
-        currentTextureCoords += texStep;
+        currentTextureCoords -= texStep;
         heightFromTexture = 1. - texture(RMOHTex, currentTextureCoords).a;
         //count += 1;
     }
     shadowMultiplier *= shadowAmount;
     // Shadowing factor should be 1 if there were no points under the surface
-    return (numSamplesUnderSurface <= 1.) ? 1. : 1. - saturate(shadowMultiplier);
+    return (numSamplesUnderSurface < 1.) ? 1. : 1. - saturate(shadowMultiplier);
     //return abs(NdotL);
 }
 

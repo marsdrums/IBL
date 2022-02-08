@@ -3442,7 +3442,7 @@
 					"parameter_enable" : 0,
 					"patching_rect" : [ 411.780000000001451, 714.711340206185469, 18.0, 82.0 ],
 					"size" : 5,
-					"value" : 4
+					"value" : 0
 				}
 
 			}
@@ -5205,8 +5205,8 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "" ],
-					"patching_rect" : [ 40.759999999999366, 139.0, 207.0, 22.0 ],
-					"text" : "jit.anim.drive @ui_listen 1 @ease 1.5"
+					"patching_rect" : [ 40.759999999999366, 139.0, 200.0, 22.0 ],
+					"text" : "jit.anim.drive @ui_listen 1 @ease 1."
 				}
 
 			}
@@ -5778,6 +5778,15 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-176", 0 ],
+					"order" : 0,
+					"source" : [ "obj-178", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-214", 0 ],
+					"order" : 1,
 					"source" : [ "obj-178", 0 ]
 				}
 
